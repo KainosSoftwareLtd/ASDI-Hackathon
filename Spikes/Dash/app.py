@@ -20,9 +20,12 @@ app = Dash(__name__)
 # fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
 
 
-eq_df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')
+points_df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')
 
-fig = px.density_mapbox(eq_df, lat='Latitude', lon='Longitude', z='Magnitude', radius=5,
+points_df = pd.DataFrame({'Longitude': [-0.621715, 0.369802], 'Latitude': [51.251246, 51.715616], 'Magnitude': [100, 100]})
+points_df = pd.read_csv('/Users/liamd/Documents/AI Bench/ASDI_competition/ASDI-Hackathon/Spikes/Dash/data/point_array_1.csv', index_col=0)
+
+fig = px.density_mapbox(points_df, lat='Latitude', lon='Longitude', z='Magnitude', radius=5,
                         center=dict(lat=51.5072, lon=0.1276), zoom=8,
                         mapbox_style="stamen-terrain")
 
