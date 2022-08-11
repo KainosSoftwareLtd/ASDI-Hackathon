@@ -1,4 +1,4 @@
-def so2_function(lat, lon):
+def o3_function(lat, lon):
     #preprocessing, convert lat/lon to radians
     import pandas as pd
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
@@ -9,8 +9,8 @@ def so2_function(lat, lon):
     
     #load model from pickle
     import pickle
-    no2_model = pickle.load(open('so2_model.pkl', 'rb'))
+    o3_model = pickle.load(open('o3_model.pkl', 'rb'))
     
     #predict with model
-    preds = no2_model.predict(input)
+    preds = o3_model.predict(input)
     return preds

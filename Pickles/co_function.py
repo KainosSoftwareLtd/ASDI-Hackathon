@@ -9,8 +9,8 @@ def co_function(lat, lon):
     
     #load model from pickle
     import pickle
-    no2_model = pickle.load(open('co_model.pkl', 'rb'))
+    co_model = pickle.load(open('co_model.pkl', 'rb'))
     
     #predict with model
-    preds = no2_model.predict(input)
+    preds = co_model.predict(input)
     return preds
