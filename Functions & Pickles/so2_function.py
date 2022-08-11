@@ -1,4 +1,4 @@
-def no2_function(lat, lon):
+def so2_function(lat, lon):
     #preprocessing, convert lat/lon to radians
     import pandas as pd
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
