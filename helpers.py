@@ -3,11 +3,8 @@ import pandas as pd
 import math
 import pathlib
 
-#ROOT = pathlib.Path().absolute().parent
-#import os
-#ROOT = pathlib.Path(os.getcwd())
-ROOT = '/Users/joshua.grefte/Projects/ASDI/Local_Repo/ASDI-Hackathon/'
-PICKLE_FOLDER_PATH = ROOT + 'Pickles/'
+ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
+PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
 
 def co_function(lat, lon):
     #preprocessing, convert lat/lon to radians
