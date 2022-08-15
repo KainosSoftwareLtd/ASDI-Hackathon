@@ -1,4 +1,4 @@
 Spikes/.ipynb_checkpoints/Land_type_OSDataHub_api-checkpoint.ipynb
 Pickles/__pycache__
 __pycache__
-git rm --cached .DS_Store
+.DS_Store

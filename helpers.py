@@ -92,14 +92,21 @@ def aqi_function(lat, lon):
     #need conversion to 3d concentration unit, multiply metre squared by a thickness to get metre cubed (volume)
     #as satellite data is 2d scan of Earth, no thickness derivable
     #will therefore assume m^2 = m^3
-    #convert grams to micrograms too (* 10**-6)
+    #1 g/m^3 = 1 ppm
+    #1 ppm = 1000 ppb therefore * 1000 for ppm --> ppb conversion
+    #multiply by 1 * 10^6 to convert g to microgram (ug)
+    #xarray data details says its mol/m-2 but the documentation says it is in fact mol/cm-2; 
+    #...the values look off after conversion (out by an order of magnitude) so going to assume it is mol/cm-2 and make the relevant additional conversions
+    #...therefore / 10000 for cm-2 to m-2
     thickness = 1
-    co_converted = ((co_value * co_molar_mass) * thickness) * 10**-6
-    no2_converted = ((no2_value * no2_molar_mass) * thickness) * 10**-6
-    o3_converted = ((o3_value * o3_molar_mass) * thickness) * 10**-6
-    so2_converted = ((so2_value * so2_molar_mass) * thickness) * 10**-6
+    co_converted = ((co_value * co_molar_mass) * thickness) * 1*(10**6) / 10000
+    no2_converted = ((no2_value * no2_molar_mass) * thickness) * 1*(10**6) / 10000
+    o3_converted = ((o3_value * o3_molar_mass) * thickness) * 1*(10**6) / 10000
+    so2_converted = ((so2_value * so2_molar_mass) * thickness) * 1*(10**6) / 10000
     
     aq_metric_converted = [co_converted, no2_converted, o3_converted, so2_converted]
+    
+    print(aq_metric_converted)
 
     #need to calculate AQI of each pollutant separately
     #the lowest AQI value of the pollutants is considered the real AQI value
@@ -127,18 +134,17 @@ def aqi_function(lat, lon):
     #https://github.com/hrbonz/python-aqi
     #aqi.algos.epa: pm10 (µg/m³), o3_8h (ppm), co_8h (ppm), no2_1h (ppb), o3_1h (ppm), so2_1h (ppb), pm25 (µg/m³)
     #aqi.algos.mep: no2_24h (µg/m³), so2_24h (µg/m³), no2_1h (µg/m³), pm10 (µg/m³), o3_1h (µg/m³), o3_8h (µg/m³), so2_1h (µg/m³), co_1h (mg/m³), pm25 (µg/m³), co_24h (mg/m³)
-    import aqi
-    #using China Ministry of Environmental Protection (MEP) as US' EPA equivalent does not support CO
-    #calc_aqi = aqi.to_iaqi([(aqi.POLLUTANT_CO_1H, str(co_converted), algo = aqi.ALGO_MEP),
-                           #(aqi.POLLUTANT_NO2_1H, str(no2_converted), algo = aqi.ALGO_MEP),
-                           #(aqi.POLLUTANT_O3_1H, str(o3_converted), algo = aqi.ALGO_MEP),
-                           #(aqi.POLLUTANT_SO2_1H, str(so2_converted), algo = aqi.ALGO_MEP)])
-    
-    aqi_list = []
-    #pollutant_constant_list = [aqi.POLLUTANT_CO_1H, aqi.POLLUTANT_NO2_1H, aqi.POLLUTANT_O3_1H, aqi.POLLUTANT_SO2_1H]
-    pollutant_constant_list = ['co_1h', 'no2_1h', 'o3_1h', 'so2_1h']
-    for i, c in aq_metric_converted, pollutant_constant_list:
-        aq_index = aqi.to_iaqi(c, str(i), algo = aqi.ALGO_MEP)
-        aqi_list.append(aq_index)
+    # import aqi
+    # aqi_list = []
+    # pollutant_constant_list = [aqi.POLLUTANT_CO_8H, aqi.POLLUTANT_NO2_1H, aqi.POLLUTANT_O3_1H, aqi.POLLUTANT_SO2_1H]
+    # for i, c in zip(aq_metric_converted, pollutant_constant_list):
+    #     aq_index = aqi.to_aqi(c, str(i))   #default algo is EPA
+    #     aqi_list.append(aq_index)
         
-    return min(aqi_list)
+    # return min(aqi_list)
+
+#https://uk-air.defra.gov.uk/air-pollution/daqi?view=more-info&pollutant=ozone#pollutant
+co_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
+no2_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
+so2_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
+o3_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
