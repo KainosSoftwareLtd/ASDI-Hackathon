@@ -89,62 +89,99 @@ def aqi_function(lat, lon):
     o3_molar_mass = 48
     so2_molar_mass = 64.066
     
-    #need conversion to 3d concentration unit, multiply metre squared by a thickness to get metre cubed (volume)
-    #as satellite data is 2d scan of Earth, no thickness derivable
-    #will therefore assume m^2 = m^3
+    #need conversion to 3d concentration unit, satellite data is 2d scan of Earth so arrives as m-2
+    #xarray data details says its mol/m-2 but the documentation says it is in fact mol/cm-2; 
+    #going to go with xarray data details as documentation maybe outdated - assume m-2
+    #all are total vertical column, assuming uniform distribution, divide by height of atmosphere recorded (49500m) to give a natural concentration for entire atmosphere
+    
     #1 g/m^3 = 1 ppm
     #1 ppm = 1000 ppb therefore * 1000 for ppm --> ppb conversion
-    #multiply by 1 * 10^6 to convert g to microgram (ug)
-    #xarray data details says its mol/m-2 but the documentation says it is in fact mol/cm-2; 
-    #...the values look off after conversion (out by an order of magnitude) so going to assume it is mol/cm-2 and make the relevant additional conversions
-    #...therefore / 10000 for cm-2 to m-2
+    #standard units for o3 = ppm, co = ppm, so2 = ppb and no2 = ppb
+    
+    #have to assume hourly as satellite takes snapshot lasting less than an hour
+    #but CO only has 8 hour EPA data available (artifact of the gas itself)
+    
     thickness = 1
-    co_converted = ((co_value * co_molar_mass) * thickness) * 1*(10**6) / 10000
-    no2_converted = ((no2_value * no2_molar_mass) * thickness) * 1*(10**6) / 10000
-    o3_converted = ((o3_value * o3_molar_mass) * thickness) * 1*(10**6) / 10000
-    so2_converted = ((so2_value * so2_molar_mass) * thickness) * 1*(10**6) / 10000
+    co_converted = ((co_value * co_molar_mass) * thickness) * 1*(10**6) / 49500
+    no2_converted = (((no2_value * no2_molar_mass) * thickness) * 1*(10**6) / 49500) * 1000
+    o3_converted = ((o3_value * o3_molar_mass) * thickness) * 1*(10**6) / 49500
+    so2_converted = (((so2_value * so2_molar_mass) * thickness) * 1*(10**6) / 49500) * 1000
     
     aq_metric_converted = [co_converted, no2_converted, o3_converted, so2_converted]
-    
-    print(aq_metric_converted)
 
     #need to calculate AQI of each pollutant separately
     #the lowest AQI value of the pollutants is considered the real AQI value
     
-    #manual calculation of AQI
-    #Cp = truncated concentration of pollutant p
-    #BPHi = concentration breakpoint i.e. greater than or equal to Cp
-    #BPLo = concentration breakpoint i.e. less than or equal to Cp
-    #IHi = AQI value corresponding to BPHi
-    #ILo = AQI value corresponding to BPLo
-    #aqi_list = []
-    #for i in aq_metric_converted:
-        #Cp = 
-        #BPHi = 
-        #BPLo = 
-        #IHi = 
-        #ILo = 
-        
-        #aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
-        #aqi_list.append(aq_index)
-        
-    #return min(aqi_list)
+    #reference tables
+    #source: https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf
+    co_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+                             'IHi': [50, 100, 150, 200, 300, 500], 
+                             #8 hour
+                             'BPLo': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 
+                             'BPHi': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
     
-    #external Python package to calculate (I)AQI
-    #https://github.com/hrbonz/python-aqi
-    #aqi.algos.epa: pm10 (µg/m³), o3_8h (ppm), co_8h (ppm), no2_1h (ppb), o3_1h (ppm), so2_1h (ppb), pm25 (µg/m³)
-    #aqi.algos.mep: no2_24h (µg/m³), so2_24h (µg/m³), no2_1h (µg/m³), pm10 (µg/m³), o3_1h (µg/m³), o3_8h (µg/m³), so2_1h (µg/m³), co_1h (mg/m³), pm25 (µg/m³), co_24h (mg/m³)
-    # import aqi
-    # aqi_list = []
-    # pollutant_constant_list = [aqi.POLLUTANT_CO_8H, aqi.POLLUTANT_NO2_1H, aqi.POLLUTANT_O3_1H, aqi.POLLUTANT_SO2_1H]
-    # for i, c in zip(aq_metric_converted, pollutant_constant_list):
-    #     aq_index = aqi.to_aqi(c, str(i))   #default algo is EPA
-    #     aqi_list.append(aq_index)
+    no2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+                              'IHi': [50, 100, 150, 200, 300, 500], 
+                              #1 hour
+                              'BPLo': [0, 54, 101, 361, 650, 1250], 
+                              'BPHi': [53, 100, 360, 649, 1249, 2049]})
+    
+    o3_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+                             'IHi': [50, 100, 150, 200, 300, 500], 
+                             #1 hour, interpolated first 2 as no data for 1 hour (only 8 hour version)
+                             'BPLo': [0, 0.0626, 0.126, 0.165, 0.205, 0.405], 
+                             'BPHi': [0.0625, 0.125, 0.164, 0.204, 0.404, 0.604]})
+    
+    so2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+                              'IHi': [50, 100, 150, 200, 300, 500], 
+                              #1 hour
+                              'BPLo': [0, 36, 76, 186, 305, 605], 
+                              'BPHi': [35, 75, 185, 304, 604, 1004]})
+    
+    
+    aqi_tables = [co_table, no2_table, o3_table, so2_table]
+    
+    #manual calculation of AQI inc referencing EPA air quality standards tables
+    #Cp = truncated concentration of pollutant p
+    #BPHi = concentration breakpoint i.e. greater than or equal to Cp or upper bound on cp range
+    #BPLo = concentration breakpoint i.e. less than or equal to Cp or lower bound on cp range
+    #IHi = AQI value corresponding to BPHi, i.e. upper bound on aqi range
+    #ILo = AQI value corresponding to BPLo, i.e. lower bound on aqi range
+    
+    aqi_list = []
+    labels = ['CO AQI -> ', 'NO2 AQI -> ', 'O3 AQI -> ', 'SO2 AQI -> ']
+    aqi_category_dict = {'Good': [0, 50], 
+                            'Moderate': [51, 100], 
+                            'Unhealthy for Sensitive Groups': [101, 150], 
+                            'Unhealthy': [151, 200], 
+                            'Very Unhealthy': [201, 300], 
+                            'Hazardous': [301, 500]}
+    for concentration, table, label in zip(aq_metric_converted, aqi_tables, labels):
+        Cp = concentration
+        for index, row in table.iterrows():
+            if (concentration < table['BPHi'][index]) and (concentration > table['BPLo'][index]):
+                BPHi = table['BPHi'][index]
+                BPLo = table['BPLo'][index]
+            else:
+                continue
+        for index, row in table.iterrows():
+            if (concentration < table['IHi'][index]) and (concentration > table['ILo'][index]):
+                IHi = table['IHi'][index]
+                ILo = table['ILo'][index]
+            else:
+                continue
         
-    # return min(aqi_list)
+        aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
+        
+        aqi_category = ''
+        for key in aqi_category_dict:
+                if (aq_index < max(aqi_category_dict[key])) and (aq_index > min(aqi_category_dict[key])):
+                    aqi_category = key
+        if aqi_category == '':
+            aqi_category = 'NA'
+                
+        print(label + aqi_category + ' -> ' + str(aq_index))
 
-#https://uk-air.defra.gov.uk/air-pollution/daqi?view=more-info&pollutant=ozone#pollutant
-co_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
-no2_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
-so2_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
-o3_table = pd.DataFrame({'US AQI Lower': [0, 51, 101, 151, 201, 301], 'US AQI Higher': [50, 100, 150, 200, 300, 500], 'US EPA Cp Range Lower': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 'US EPA Cp Range Higher': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
+        aqi_list.append(aq_index)
+        
+    return max(aqi_list)
