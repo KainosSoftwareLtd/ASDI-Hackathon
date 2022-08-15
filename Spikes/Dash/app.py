@@ -22,12 +22,24 @@ app = Dash(__name__)
 
 points_df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/earthquakes-23k.csv')
 
-points_df = pd.DataFrame({'Longitude': [-0.621715, 0.369802], 'Latitude': [51.251246, 51.715616], 'Magnitude': [100, 100]})
-points_df = pd.read_csv('/Users/liamd/Documents/AI Bench/ASDI_competition/ASDI-Hackathon/Spikes/Dash/data/point_array_1.csv', index_col=0)
+# points_df = pd.DataFrame({'Longitude': [-0.621715, 0.369802], 'Latitude': [51.251246, 51.715616], 'Magnitude': [100, 100]})
+points_df = pd.read_csv('./data/point_array_1.csv', index_col=0)
 
+# heatmap
 fig = px.density_mapbox(points_df, lat='Latitude', lon='Longitude', z='Magnitude', radius=5,
                         center=dict(lat=51.5072, lon=0.1276), zoom=8,
-                        mapbox_style="stamen-terrain")
+                        mapbox_style="carto-darkmatter") #"stamen-terrain"
+
+
+
+# scatter
+# fig = px.scatter_mapbox(points_df,
+#                         lat='Latitude',
+#                         lon='Longitude',
+#                         hover_name="population",
+#                         zoom=9,
+#                         mapbox_style="carto-darkmatter")
+
 
 fig.update_layout(
     # autosize=True,
