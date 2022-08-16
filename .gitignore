@@ -1,4 +1,5 @@
-Spikes/.ipynb_checkpoints/Land_type_OSDataHub_api-checkpoint.ipynb
+Spikes/.ipynb_checkpoints/*
 Pickles/__pycache__
 __pycache__
-git rm --cached .DS_Store
+.DS_Store
+Spikes/Dash/data/*
