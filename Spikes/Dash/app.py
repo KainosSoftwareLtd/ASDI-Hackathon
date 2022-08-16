@@ -26,9 +26,10 @@ points_df = pd.read_csv('./data/points_df_aqindex_filled.csv', index_col=0)
 
 # heatmap
 #z = 'Value_co'
-z = 'Value_no2'
+#z = 'Value_no2'
 #z = 'Value_o3'
 #z = 'Value_so2'
+z = 'AQI'
 fig = px.density_mapbox(points_df, lat='Latitude', lon='Longitude', z=z, radius=5,
                         center=dict(lat=51.5072, lon=0.1276), zoom=8,
                         mapbox_style="carto-darkmatter") #"stamen-terrain"
