@@ -1,5 +1,6 @@
 import pickle
 import pandas as pd
+import numpy as np
 import math
 import pathlib
 from haversine import *
@@ -210,20 +211,18 @@ def aqi_function_og(lat, lon):
     return max(aqi_list)
 
 def aqi_function(lat, lon):
-    co_value = co_function(lat, lon)
-    no2_value = no2_function(lat, lon)
-    o3_value = o3_function(lat, lon)
-    so2_value = so2_function(lat, lon)
+    """Takes a latitdude and longitude coordinate and calculates the Air Quality Index at this point.
 
-    co_molar_mass = 28.01
-    no2_molar_mass = 46.0055
-    o3_molar_mass = 48
-    so2_molar_mass = 64.066
-    
-    co_converted = co_value * co_molar_mass
-    no2_converted = no2_value * no2_molar_mass
-    o3_converted = o3_value * o3_molar_mass
-    so2_converted = so2_value * so2_molar_mass
+    Args:
+        lat, lon: single float value for each. It is required that these lat, lon values exist in the referenced CSV file.
+
+    Returns:
+        The Air Quality Index at the specified coordinates.
+    """
+    df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df_aqindex_filled.csv', index_col = 0)
+    df = df[np.isclose(df['Latitude'], lat)]
+    df = df[np.isclose(df['Longitude'], lon)]
+    return df['AQI'].item()
   
 def convert_point_list_to_df(points):
     """Converts list of points to a dataframe with Latitude and Longitude columns

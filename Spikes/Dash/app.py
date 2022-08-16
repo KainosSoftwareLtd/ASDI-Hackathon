@@ -20,13 +20,18 @@ app = Dash(__name__)
 # fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
 
 # points_df = pd.DataFrame({'Longitude': [-0.621715, 0.369802], 'Latitude': [51.251246, 51.715616], 'Magnitude': [100, 100]})
-points_df = pd.read_csv('./data/points_df.csv', index_col=0)
+# points_df = pd.read_csv('./data/points_df.csv', index_col=0)
+# points_df = pd.read_csv('./data/points_df_aq_filled.csv', index_col=0)
+points_df = pd.read_csv('./data/points_df_aqindex_filled.csv', index_col=0)
 
 # heatmap
-fig = px.density_mapbox(points_df, lat='Latitude', lon='Longitude', z='Magnitude', radius=5,
+#z = 'Value_co'
+z = 'Value_no2'
+#z = 'Value_o3'
+#z = 'Value_so2'
+fig = px.density_mapbox(points_df, lat='Latitude', lon='Longitude', z=z, radius=5,
                         center=dict(lat=51.5072, lon=0.1276), zoom=8,
                         mapbox_style="carto-darkmatter") #"stamen-terrain"
-
 
 
 # scatter
