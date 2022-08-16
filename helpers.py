@@ -78,7 +78,7 @@ def popdensity_function(lat, lon):
     preds = popdensity_model.predict(input)
     return preds[0]
 
-def aqi_function(lat, lon):
+def aqi_function_og(lat, lon):
     co_value = co_function(lat, lon)
     no2_value = no2_function(lat, lon)
     o3_value = o3_function(lat, lon)
@@ -103,11 +103,17 @@ def aqi_function(lat, lon):
     #have to assume hourly as satellite takes snapshot lasting less than an hour
     #but CO only has 8 hour EPA data available (artifact of the gas itself)
     
-    # co_converted = (co_value * co_molar_mass) * 1*(10**-6) * 49500
-    # no2_converted = ((no2_value * no2_molar_mass) * 1*(10**-6) * 49500) * 1000
-    # o3_converted = (o3_value * o3_molar_mass) * 1*(10**-6) * 49500
-    # so2_converted = ((so2_value * so2_molar_mass) * 1*(10**-6) * 49500) * 1000
+    #data arriving as total vertical column, i.e. number of molecules viewable from perspective above Earth of column
+    #i.e. if column cylindrical, the number of molecules viewable from a planar view of top circle
+    #some molecules may be behind others so not accurate as is
+    #need to use atmospheric model of different layers of Earth's atmosphere (like air pressure) to possibly derive near-surface value
+    #as one moves up atmospheric levels, the density of the atmosphere reduces...
+    #can use data accompanying NO2 value and assume similar to e.g. CO but there maybe slight differences depending on e.g.
+    #penetratability of a CO molecule to higher levels of atmosphere if more/less dense than surrounding molecules 
     
+    #alternative is to use something like GAMs to model a combination of reference table BP ranges into one
+    
+    #basic assumption
     #no conversion m-2 to m-3, m-2 = m-3
     co_converted = (co_value * co_molar_mass)
     no2_converted = ((no2_value * no2_molar_mass)) * 1000
@@ -165,24 +171,26 @@ def aqi_function(lat, lon):
                             'Hazardous': [301, 500]}
     for concentration, table, label in zip(aq_metric_converted, aqi_tables, labels):
         Cp = concentration
+        BPHi = 'Out of Bounds'
+        BPLo = 'Out of Bounds'
         for index, row in table.iterrows():
-            if (concentration < table['BPHi'][index]) and (concentration > table['BPLo'][index]):
-                BPHi = table['BPHi'][index]
-                BPLo = table['BPLo'][index]
+            if concentration <= table['BPHi'].iloc[index] and concentration >= table['BPLo'].iloc[index]:
+                BPHi = table['BPHi'].iloc[index]
+                BPLo = table['BPLo'].iloc[index]
             else:
                 continue
+        IHi = 'Out of bounds'
+        ILo = 'Out of Bounds'
         for index, row in table.iterrows():
-            if (concentration < table['IHi'][index]) and (concentration > table['ILo'][index]):
-                IHi = table['IHi'][index]
-                ILo = table['ILo'][index]
+            if concentration <= table['IHi'].iloc[index] and concentration >= table['ILo'].iloc[index]:
+                IHi = table['IHi'].iloc[index]
+                ILo = table['ILo'].iloc[index]
             else:
                 continue
-        
         try:
             aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
         except:
-            print('Values out of bounds')
-            print(IHi, ILo, BPHi, BPLo)
+            print(label, 'Values(s) out of bounds ->', 'IHi:', IHi, 'ILo:', ILo, 'BPHi:', BPHi, 'BPLo:', BPLo)
         
         aqi_category = ''
         for key in aqi_category_dict:
@@ -200,6 +208,22 @@ def aqi_function(lat, lon):
         print(key, aqi_category_dict[key])
     
     return max(aqi_list)
+
+def aqi_function(lat, lon):
+    co_value = co_function(lat, lon)
+    no2_value = no2_function(lat, lon)
+    o3_value = o3_function(lat, lon)
+    so2_value = so2_function(lat, lon)
+
+    co_molar_mass = 28.01
+    no2_molar_mass = 46.0055
+    o3_molar_mass = 48
+    so2_molar_mass = 64.066
+    
+    co_converted = co_value * co_molar_mass
+    no2_converted = no2_value * no2_molar_mass
+    o3_converted = o3_value * o3_molar_mass
+    so2_converted = so2_value * so2_molar_mass
   
 def convert_point_list_to_df(points):
     """Converts list of points to a dataframe with Latitude and Longitude columns
