@@ -96,16 +96,21 @@ def aqi_function(lat, lon):
     
     #1 g/m^3 = 1 ppm
     #1 ppm = 1000 ppb therefore * 1000 for ppm --> ppb conversion
-    #standard units for o3 = ppm, co = ppm, so2 = ppb and no2 = ppb
+    #standard units for o3 = ppm, co = ppm, so2 = ppb and no2 = ppb (according to EPA reference tables)
     
     #have to assume hourly as satellite takes snapshot lasting less than an hour
     #but CO only has 8 hour EPA data available (artifact of the gas itself)
     
-    thickness = 1
-    co_converted = ((co_value * co_molar_mass) * thickness) * 1*(10**6) / 49500
-    no2_converted = (((no2_value * no2_molar_mass) * thickness) * 1*(10**6) / 49500) * 1000
-    o3_converted = ((o3_value * o3_molar_mass) * thickness) * 1*(10**6) / 49500
-    so2_converted = (((so2_value * so2_molar_mass) * thickness) * 1*(10**6) / 49500) * 1000
+    # co_converted = (co_value * co_molar_mass) * 1*(10**-6) * 49500
+    # no2_converted = ((no2_value * no2_molar_mass) * 1*(10**-6) * 49500) * 1000
+    # o3_converted = (o3_value * o3_molar_mass) * 1*(10**-6) * 49500
+    # so2_converted = ((so2_value * so2_molar_mass) * 1*(10**-6) * 49500) * 1000
+    
+    #no conversion m-2 to m-3, m-2 = m-3
+    co_converted = (co_value * co_molar_mass)
+    no2_converted = ((no2_value * no2_molar_mass)) * 1000
+    o3_converted = (o3_value * o3_molar_mass)
+    so2_converted = ((so2_value * so2_molar_mass)) * 1000
     
     aq_metric_converted = [co_converted, no2_converted, o3_converted, so2_converted]
 
@@ -171,17 +176,25 @@ def aqi_function(lat, lon):
             else:
                 continue
         
-        aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
+        try:
+            aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
+        except:
+            print('Values out of bounds')
+            print(IHi, ILo, BPHi, BPLo)
         
         aqi_category = ''
         for key in aqi_category_dict:
                 if (aq_index < max(aqi_category_dict[key])) and (aq_index > min(aqi_category_dict[key])):
                     aqi_category = key
         if aqi_category == '':
-            aqi_category = 'NA'
+            aqi_category = 'Out of Bounds'
                 
         print(label + aqi_category + ' -> ' + str(aq_index))
 
         aqi_list.append(aq_index)
-        
+    
+    print('\n')
+    for key in aqi_category_dict:
+        print(key, aqi_category_dict[key])
+    
     return max(aqi_list)
