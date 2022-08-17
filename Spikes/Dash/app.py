@@ -30,6 +30,7 @@ df = pd.read_csv('./data/points_df_aqindex_filled.csv', index_col=0)
 #z = 'Value_no2'
 #z = 'Value_o3'
 #z = 'Value_so2'
+#z = 'Value_ai'
 #z = 'AQI'
 #fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=z, radius=5,
                         #center=dict(lat=51.5072, lon=0.1276), zoom=8,
@@ -74,7 +75,8 @@ app.layout = html.Div(children=[
                         {'label': 'Carbon Monoxide', 'value': 'Value_co'},
                         {'label': 'Nitrogen Dioxide', 'value': 'Value_no2'},
                         {'label': 'Ozone', 'value': 'Value_o3'},
-                        {'label': 'Sulphur Dioxide', 'value': 'Value_so2'}
+                        {'label': 'Sulphur Dioxide', 'value': 'Value_so2'},
+                        {'label': 'Aerosol Index', 'value': 'Value_ai'}
             ],
             optionHeight=25,                    #height/space between dropdown options
             value='AQI',         #dropdown value selected automatically when page loads
@@ -106,7 +108,7 @@ app.layout = html.Div(children=[
 
 def build_graph(column_chosen):
     fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=5,
-                        center=dict(lat=51.5072, lon=0.1276), zoom=8.7,
+                        center=dict(lat=51.5072, lon=0.1276), zoom=8.65,
                         mapbox_style="carto-darkmatter")
     fig.update_layout(
         # autosize=True,
