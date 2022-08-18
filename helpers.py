@@ -224,19 +224,19 @@ def aqi_function_og(lat, lon):
     
     return max(aqi_list)
 
-# def aqi_function(lat, lon):
-#     """Takes a latitdude and longitude coordinate and calculates the Air Quality Index at this point.
+def get_aqs_function(lat, lon):
+    """Takes a latitude and longitude coordinate and calculates the Air Quality Index at this point.
 
-#     Args:
-#         lat, lon: single float value for each. It is required that these lat, lon values exist in the referenced CSV file.
+    Args:
+        lat, lon: single float value for each. It is required that these lat, lon values exist in the referenced CSV file.
 
-#     Returns:
-#         The Air Quality Index at the specified coordinates. Smaller value = higher air quality.
-#     """
-#     df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df_aqindex_filled.csv', index_col = 0)
-#     df = df[np.isclose(df['Latitude'], lat)]
-#     df = df[np.isclose(df['Longitude'], lon)]
-#     return df['AQI'].item()
+    Returns:
+        The Air Quality Index at the specified coordinates. Smaller value = higher air quality.
+    """
+    df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', index_col = 0)
+    df = df[np.isclose(df['Latitude'], lat)]
+    df = df[np.isclose(df['Longitude'], lon)]
+    return df['AQ_score'].item()
   
 def convert_point_list_to_df(points):
     """Converts list of points to a dataframe with Latitude and Longitude columns
