@@ -11,31 +11,7 @@ app = Dash(__name__)
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
 
-
-# df = pd.DataFrame({
-#     "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-#     "Amount": [4, 1, 2, 2, 4, 5],
-#     "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-# })
-
-# fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
-
-# df = pd.DataFrame({'Longitude': [-0.621715, 0.369802], 'Latitude': [51.251246, 51.715616], 'Magnitude': [100, 100]})
-# df = pd.read_csv('./data/points_df.csv', index_col=0)
-# df = pd.read_csv('./data/points_df_aq_filled.csv', index_col=0)
-df = pd.read_csv('./data/points_df_aqindex_filled.csv', index_col=0)
-
-# heatmap
-#z = 'Value_co'
-#z = 'Value_no2'
-#z = 'Value_o3'
-#z = 'Value_so2'
-#z = 'Value_ai'
-#z = 'AQI'
-#fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=z, radius=5,
-                        #center=dict(lat=51.5072, lon=0.1276), zoom=8,
-                        #mapbox_style="carto-darkmatter") #"stamen-terrain"
-
+df = pd.read_csv('./data/final_csv.csv', index_col=0)
 
 # scatter
 # fig = px.scatter_mapbox(points_df,
@@ -44,15 +20,6 @@ df = pd.read_csv('./data/points_df_aqindex_filled.csv', index_col=0)
 #                         hover_name="population",
 #                         zoom=9,
 #                         mapbox_style="carto-darkmatter")
-
-
-#fig.update_layout(
-    # autosize=True,
-    # width=1200,
-    #height=800,)
-
-
-
 
 app.layout = html.Div(children=[
     html.H1(children='Green space suggestion dashboard'),
@@ -70,8 +37,9 @@ app.layout = html.Div(children=[
         html.Label('Select Overlay'),
         dcc.Dropdown(id='my_dropdown',
             options=[
-                        {'label': 'Greenspaceability Metric', 'value': 'GM', 'disabled': True},
-                        {'label': 'Air Quality Metric', 'value': 'AQI'},
+                        {'label': 'Greenspaceability Metric', 'value': 'Greenspace_score', 'disabled': True},
+                        {'label': 'Air Quality Metric', 'value': 'AQ_score'},
+                        {'label': 'Population Density', 'value': 'Pop_density'},
                         {'label': 'Carbon Monoxide', 'value': 'Value_co'},
                         {'label': 'Nitrogen Dioxide', 'value': 'Value_no2'},
                         {'label': 'Ozone', 'value': 'Value_o3'},
@@ -79,7 +47,7 @@ app.layout = html.Div(children=[
                         {'label': 'Aerosol Index', 'value': 'Value_ai'}
             ],
             optionHeight=25,                    #height/space between dropdown options
-            value='AQI',         #dropdown value selected automatically when page loads
+            value='AQS',         #dropdown value selected automatically when page loads
             disabled=False,                     #disable dropdown value selection
             multi=False,                        #allow multiple dropdown values to be selected
             searchable=True,                    #allow user-searching of dropdown values
@@ -93,11 +61,11 @@ app.layout = html.Div(children=[
             ),                                  #'memory': browser tab is refreshed
                                                 #'session': browser tab is closed
                                                 #'local': browser cookies are deleted
-        ],className='three columns'),
+        ],className='eight columns'),
     
     html.Div([
         dcc.Graph(id='our_graph')
-    ],className='nine columns'),
+    ],className='eight columns'),
     
 ])
     
