@@ -37,7 +37,7 @@ app.layout = html.Div(children=[
         html.Label('Select Overlay'),
         dcc.Dropdown(id='my_dropdown',
             options=[
-                        {'label': 'Greenspaceability Metric', 'value': 'Greenspace_score', 'disabled': True},
+                        {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score', 'disabled': True},
                         {'label': 'Air Quality Metric', 'value': 'AQ_score'},
                         {'label': 'Population Density', 'value': 'Pop_density'},
                         {'label': 'Carbon Monoxide', 'value': 'Value_co'},
