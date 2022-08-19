@@ -5,6 +5,7 @@ import math
 import pathlib
 from haversine import *
 from tqdm import tqdm
+import swifter
 
 ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
 PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
@@ -82,8 +83,8 @@ def ai_function(lat, lon):
 def popdensity_function(lat, lon):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
-    df['latitude'] = df['latitude'].apply(math.radians)
-    df['longitude'] = df['longitude'].apply(math.radians)
+    df['latitude'] = df['latitude'].swifter.apply(math.radians)
+    df['longitude'] = df['longitude'].swifter.apply(math.radians)
     input = df[['latitude', 'longitude']]
     
     #load model from pickle
@@ -263,7 +264,7 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     """ Get an evenly spaced set of points from a given bounding box. Uses the haversine formula.
 
     Args:
-        d (float): the diameter of the circular space around a point in km
+        d (float): the diameter of the circular space around a point in km (the resolution wanted)
         bottom_left (float tuple): lat/long
         topright (float tuple): lat/long
 
