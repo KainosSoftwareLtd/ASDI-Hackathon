@@ -47,7 +47,7 @@ app.layout = html.Div(children=[
                         {'label': 'Aerosol Index', 'value': 'Value_ai'}
             ],
             optionHeight=25,                    #height/space between dropdown options
-            value='AQS',         #dropdown value selected automatically when page loads
+            value='AQ_score',         #dropdown value selected automatically when page loads
             disabled=False,                     #disable dropdown value selection
             multi=False,                        #allow multiple dropdown values to be selected
             searchable=True,                    #allow user-searching of dropdown values
