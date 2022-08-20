@@ -13,7 +13,8 @@ app = Dash(__name__)
 # see https://plotly.com/python/px-arguments/ for more options
 
 #import data CSV
-df = pd.read_csv('./data/final_csv.csv', index_col=0)
+#df = pd.read_csv('./data/final_csv.csv')
+df = pd.read_parquet('./data/final_parquet.parquet', engine ='auto')
 
 app.layout = html.Div(children=[
     html.H2(children='Green Space Suggestion Dashboard'),
@@ -79,7 +80,7 @@ def build_graph(column_chosen):
     # fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', opacity = 0.5,
     #                         color = column_chosen, zoom=9.5, mapbox_style="carto-positron")
     
-    # >100 horizontal hexagons has performance issues, long to load
+    # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
     fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=100, 
                                   opacity=0.3, center=dict(lat=51.50009, lon=0.1268072),
                                   mapbox_style="carto-positron", zoom=10.1, color_continuous_scale = 'Turbo',
