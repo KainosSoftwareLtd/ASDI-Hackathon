@@ -11,40 +11,31 @@ app = Dash(__name__)
 # assume you have a "long-form" data frame
 # see https://plotly.com/python/px-arguments/ for more options
 
+#import data CSV
 df = pd.read_csv('./data/final_csv.csv', index_col=0)
 
-# scatter
-# fig = px.scatter_mapbox(points_df,
-#                         lat='Latitude',
-#                         lon='Longitude',
-#                         hover_name="population",
-#                         zoom=9,
-#                         mapbox_style="carto-darkmatter")
-
 app.layout = html.Div(children=[
-    html.H1(children='Green space suggestion dashboard'),
+    html.H2(children='Green Space Suggestion Dashboard'),
 
-    html.H3(children='''
-        Here we show our heatmap of london to suggest the most suitbale places for green spaces.
-    '''),
+    # html.H4(children='''
+    #     Here we show our heatmap of London to suggest the most suitbale places for green spaces.
+    # '''),
 
     html.Div([
         
-        html.Br(),
-            html.Div(id='output_data'),
-            html.Br(),
+        html.Div(id='output_data'),
     
         html.Label('Select Overlay'),
         dcc.Dropdown(id='my_dropdown',
             options=[
                         {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score', 'disabled': True},
-                        {'label': 'Air Quality Metric', 'value': 'AQ_score'},
                         {'label': 'Population Density', 'value': 'Pop_density'},
-                        {'label': 'Carbon Monoxide', 'value': 'Value_co'},
-                        {'label': 'Nitrogen Dioxide', 'value': 'Value_no2'},
-                        {'label': 'Ozone', 'value': 'Value_o3'},
-                        {'label': 'Sulphur Dioxide', 'value': 'Value_so2'},
-                        {'label': 'Aerosol Index', 'value': 'Value_ai'}
+                        {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score'},
+                        {'label': 'AQ Carbon Monoxide', 'value': 'Value_co'},
+                        {'label': 'AQ Nitrogen Dioxide', 'value': 'Value_no2'},
+                        {'label': 'AQ Ozone', 'value': 'Value_o3'},
+                        {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2'},
+                        {'label': 'AQ Aerosol Index', 'value': 'Value_ai'}
             ],
             optionHeight=25,                    #height/space between dropdown options
             value='AQ_score',         #dropdown value selected automatically when page loads
@@ -52,7 +43,7 @@ app.layout = html.Div(children=[
             multi=False,                        #allow multiple dropdown values to be selected
             searchable=True,                    #allow user-searching of dropdown values
             search_value='',                    #remembers the value searched in dropdown
-            placeholder='Select a data overlay',     #gray, default text shown when no option is selected
+            placeholder='Select data to overlay onto the map',     #gray, default text shown when no option is selected
             clearable=True,                     #allow user to removes the selected value
             style={'width':"100%"},             #use dictionary to define CSS styles of your dropdown
             # className='select_box',           #activate separate CSS document in assets folder
@@ -75,20 +66,27 @@ app.layout = html.Div(children=[
 )
 
 def build_graph(column_chosen):
-    fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=5,
-                        center=dict(lat=51.5072, lon=0.1276), zoom=8.65,
-                        mapbox_style="carto-darkmatter")
+    # density
+    #https://plotly.com/python/builtin-colorscales/
+    fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.5,
+                        center=dict(lat=51.50009, lon=0.1268072), zoom=10.1,
+                        #'open-street-map', 'carto-positron", 'carto-darkmatter', 'stamen-terrain', 'stamen-toner', 'stamen-watercolor' 
+                        mapbox_style="carto-positron",
+                        color_continuous_scale = 'Turbo')   #Thermal
+    
+    # scatter
+    # fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', opacity = 0.5,
+    #                         color = column_chosen, zoom=9.5, mapbox_style="carto-darkmatter")
+    
     fig.update_layout(
-        # autosize=True,
-        # width=1200,
-        height=800,)
+        autosize=True,
+        #width=2000,
+        height=850,
+        margin=dict(l=20, r=20, t=20, b=20)
+        #paper_bgcolor="PaleGreen"
+        )
+    
     return fig
-
-#     dcc.Graph(
-#         id='example-graph',
-#         figure=fig
-#     )
-# ])
 
 if __name__ == '__main__':
     app.run_server(debug=True)
