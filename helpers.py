@@ -5,6 +5,15 @@ import math
 import pathlib
 from haversine import *
 from tqdm import tqdm
+import boto3
+import time
+import math
+from multiprocessing import Pool
+from multiprocessing import cpu_count
+#for Jupyter Notebooks parallel processing
+#multiprocess works better within Jupyter Notebooks than multiprocessing package
+from multiprocess import Pool
+from multiprocess import cpu_count
 
 ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
 PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
@@ -304,3 +313,168 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     point_set_df = convert_point_list_to_df(points)
 
     return point_set_df
+
+def parallelise(df, func):
+    n_cores = cpu_count()
+    df_splits = np.array_split(df, n_cores)
+    pool = Pool(n_cores)
+    results = pool.map(func, df_splits)
+    pool.close()
+    pool.join()
+    df = pd.concat(results)
+    return df
+
+def apply_aq_functions(df):
+    #molar mass constants
+    co_molar_mass = 28.01
+    no2_molar_mass = 46.0055
+    o3_molar_mass = 48
+    so2_molar_mass = 64.066
+
+    #apply aq functions to each row (using latitude and longitude columns) and multiply by associated molar mass to give g/m2
+    #axis = 1, apply function to each row
+    
+    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude']) * co_molar_mass, axis=1)
+    #print('co_function complete')
+    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude']) * no2_molar_mass, axis=1)
+    #print('no2_function complete')
+    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude']) * o3_molar_mass, axis=1)
+    #print('o3_function complete')
+    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude']) * so2_molar_mass, axis=1)
+    #print('so2_function complete')
+    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude']), axis=1)
+    #print('ai_function complete')
+    return df
+
+def normalise(df):
+    norm_cols = ['Value_co', 'Value_no2', 'Value_o3', 'Value_so2', 'Value_ai']
+    #normalise each aq metric value set between 1 and 0 where 0 = 0% and 1 = 20%
+    for i in df[norm_cols]:   #normalise aq value columns
+        df['norm_' + i]=(df[i]-df[i].min())/(df[i].max()-df[i].min())
+    return df
+
+def aqs_function(aq1, aq2, aq3, aq4, aq5):
+    #smaller value = better air quality
+    aqs = (aq1 * (20/100)) + (aq2 * (20/100)) + (aq3 * (20/100)) + (aq4 * (20/100)) + (aq5 * (20/100))
+    return aqs
+
+def apply_aqs_function(df):
+    #assumption: each metric is worth 20% of AQS, 100 / 5 metrics
+    #apply calculate_aqi function to each row of the 5 aq columns
+    df['AQ_score'] = df.apply(lambda row : aqs_function(row['norm_Value_co'], 
+                                                            row['norm_Value_no2'], 
+                                                            row['norm_Value_o3'], 
+                                                            row['norm_Value_so2'], 
+                                                            row['norm_Value_ai']), axis=1)
+    
+    #drop normalised columns
+    df = df.drop(['norm_Value_co', 'norm_Value_no2', 'norm_Value_o3', 'norm_Value_so2', 'norm_Value_ai'], axis = 1)
+    return df
+
+def apply_popd_function(df):
+    #same as above apply aq functions but with...
+    #popdensity_function
+    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
+    return df
+
+def greenspace_score_function(df, aqs, pop_density, land_type):
+    #Population Density
+    popd_pct = 50/100
+    #50m2 per capita according to WHO standards or 100m2 (our resolution) per 2 people
+    standard_gs_per_pop_m2 = 50
+    sum_df_popd = df['Pop_density'].sum()
+    sum_df_greenspace_m2 = df[df['Land_type'] == 'greenspace'].sum() * 100   #sum of greenspace multiplied by resolution
+    gs_per_capita = sum_df_greenspace_m2 / sum_df_popd
+    #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE lower weighting
+    #weight <1 will decrease contribution of pop density to greenspace score
+    #if current greenspace per capita is WORSE than WHO standards, it is MORE likely greenspace is required so REWARD higher weighting
+    #weight >1 will increase contribution of pop density to greenspace score
+    #weight =1 means weighting is essentially cancelled out
+    popd_weight = gs_per_capita / standard_gs_per_pop_m2
+    
+    #Land Type
+    if (land_type == 'hospital'):
+        penalty_reward = 0
+    elif (land_type == 'hospital'):
+        penalty_reward = 0
+    elif land_type in ['hospital', 'hospital']:
+        penalty_reward = 0
+    else:
+        penalty_reward = 1   #no penalty_reward
+        
+    #Air Quality Score
+    aqs_pct = 100 - sum(popd_weight * popd_pct)
+    aqs_weight = 1
+        
+    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * penalty_reward
+    return Greenspace_score
+    
+def apply_greenspace_score_function(df):
+    return df
+    df['Greenspace_score'] = df.apply(lambda row : greenspace_score_function(row['Land_type'], 
+                                                                                    row['AQ_score'], 
+                                                                                    row['Pop_density']), axis=1)
+
+def fill_points_df():
+    
+    df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
+    
+    start = time.time()
+    df = parallelise(df, apply_aq_functions)
+    end = time.time()
+    time_taken1 = round(end - start, 2)
+    print('apply_aq_functions complete')
+    print('Time taken:', time_taken1)
+    
+    start = time.time()
+    df = parallelise(df, apply_popd_function)
+    df = normalise(df)
+    print('normalisation of aq values complete')
+    df = apply_aqs_function(df)
+    print('apply_aqs_function complete')
+    end = time.time()
+    time_taken2 = round(end - start, 2)
+    print('apply_popd_function complete')
+    print('Time taken:', time_taken2)
+    
+    start = time.time()
+    df = apply_greenspace_score_function(df)
+    end = time.time()
+    time_taken3 = round(end - start, 2)
+    print('apply_greenspace_score_function complete')
+    print('Time taken:', time_taken3)
+    
+    total_time_taken = time_taken1 + time_taken2 + time_taken3
+    print('TOTAL time taken:', total_time_taken)
+    
+    #save dataframe to csv
+    df.to_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', index = False)
+    
+    #save dataframe to parquet
+    df.to_parquet(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', engine = 'auto', compression = None, index = False)
+    
+    return df
+
+def upload_final_df_to_s3(bucket, file_type):
+    """ Upload the local final_csv.csv or final_parquet.parquet to the designated AWS bucket
+
+    Args:
+        bucket (string): name of bucket, e.g. asdi-hackathon
+        file_type (string): 'csv' for the csv file or 'parquet' for the parquet file
+
+    Returns:
+        Confirmation of successful/unsuccessful upload
+    """
+    s3 = boto3.resource('s3')
+    if file_type == 'csv':
+        try:
+            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', bucket, 'final_csv.csv')
+            print('Successful upload')
+        except:
+            print('Failed upload')
+    elif file_type == 'parquet':
+        try:
+            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', bucket, 'final_parquet.parquet')
+            print('Successful upload')
+        except:
+            print('Failed upload')
