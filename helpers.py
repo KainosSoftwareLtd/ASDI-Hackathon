@@ -468,13 +468,47 @@ def upload_final_df_to_s3(bucket, file_type):
     s3 = boto3.resource('s3')
     if file_type == 'csv':
         try:
-            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', bucket, 'final_csv.csv')
+            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', bucket, 'final-data/final_csv.csv')
             print('Successful upload')
         except:
             print('Failed upload')
     elif file_type == 'parquet':
         try:
-            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', bucket, 'final_parquet.parquet')
+            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', bucket, 'final-data/final_parquet.parquet')
             print('Successful upload')
         except:
             print('Failed upload')
+            
+def upload_pickle_to_s3(bucket, name_pickle_file):
+    """ Upload local model pickle to the designated AWS bucket
+
+    Args:
+        bucket (string): name of bucket, e.g. asdi-hackathon
+        name_pickle_file (string): name of model pickle file to upload including the extension .pkl
+
+    Returns:
+        Confirmation of successful/unsuccessful upload
+    """
+    s3 = boto3.resource('s3')
+    try:
+        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Pickles/' + name_pickle_file, bucket, 'pickles/' + name_pickle_file)
+        print('Successful upload')
+    except:
+        print('Failed upload')
+        
+def upload_df_to_s3(bucket, name_df_file):
+    """ Upload local model pickle to the designated AWS bucket
+
+    Args:
+        bucket (string): name of bucket, e.g. asdi-hackathon
+        name_pickle (string): name of model pickle file to upload including the extension .pkl
+
+    Returns:
+        Confirmation of successful/unsuccessful upload
+    """
+    s3 = boto3.resource('s3')
+    try:
+        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/' + name_df_file, bucket, name_df_file)
+        print('Successful upload')
+    except:
+        print('Failed upload')
