@@ -6,7 +6,7 @@ from haversine import *
 from tqdm import tqdm
 from Enums.land_type import LAND_TYPE
 import requests
-import os
+from time import time
 
 
 ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
@@ -219,24 +219,49 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
         print(e)
     
     if r.status_code == 200:
-        payload = r.json()    
+        payload = r.json()
+    elif r.status_code == 229:
+        # Wait a minute and 5 seconds
+        t0 = time()
+        while(time() - t0 < 2):
+            continue
+        # try again
+        try:
+            r = requests.get(wfs_endpoint, params=params_wfs)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(e)
+        payload = r.json()
+        
+        if r.status_code == 229:
+            print('Not long enough')
+            print(r.status_code)
+            return 'Error - '+r.status_code
+        elif r.status_code != 200:
+            print(r.status_code)
+            return 'Error - '+str(r.status_code)
+        # THIS NEEDS TO BE REFACTORED
     else:
         print(r.status_code)
-        raise Exception(r.status_code)
+        return 'Error - '+str(r.status_code)
     
     return payload
     
     
 def is_airport(bbox, API_key):
     result = get_feature_type_in_bbox(bbox, 'Zoomstack_Airports', API_key)
-    if len(result['features']) > 0:
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
         return True
     else:
         return False
 
 def is_water(bbox, API_key):
     result = get_feature_type_in_bbox(bbox, 'Zoomstack_Surfacewater', API_key)
-    if len(result['features']) > 0:
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
         return True
     else:
         return False
@@ -245,7 +270,11 @@ def is_building(bbox, API_key):
     result_local = get_feature_type_in_bbox(bbox, 'Zoomstack_LocalBuildings', API_key)
     result_district = get_feature_type_in_bbox(bbox, 'Zoomstack_DistrictBuildings', API_key)
     
-    if len(result_local['features']) > 0:
+    if (isinstance(result_local, str)):
+        return False
+    elif (isinstance(result_district, str)):
+        return False
+    elif len(result_local['features']) > 0:
         return True
     elif len(result_district['features']) > 0:
         return True
@@ -257,7 +286,13 @@ def is_green_space(bbox, API_key):
     result_NationalParks = get_feature_type_in_bbox(bbox, 'Zoomstack_NationalParks', API_key)
     result_Woodland = get_feature_type_in_bbox(bbox, 'Zoomstack_Woodland', API_key)
     
-    if len(result_Greenspace['features']) > 0:
+    if (isinstance(result_Greenspace, str)):
+        return False
+    elif (isinstance(result_NationalParks, str)):
+        return False
+    elif (isinstance(result_Woodland, str)):
+        return False
+    elif len(result_Greenspace['features']) > 0:
         return True
     elif len(result_NationalParks['features']) > 0:
         return True
@@ -268,14 +303,18 @@ def is_green_space(bbox, API_key):
 
 def is_railway_station(bbox, API_key):
     result = get_feature_type_in_bbox(bbox, 'Zoomstack_RailwayStations', API_key)
-    if len(result['features']) > 0:
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
         return True
     else:
         return False
 
 def is_urban_area(bbox, API_key):
     result = get_feature_type_in_bbox(bbox, 'Zoomstack_UrbanAreas', API_key)
-    if len(result['features']) > 0:
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
         return True
     else:
         return False
