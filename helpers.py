@@ -189,7 +189,7 @@ def get_bbox_of_point(latitude, longitude, resolution_diameter):
     bottom_left = inverse_haversine((latitude, longitude), hypot, Direction.SOUTHWEST)
     top_right = inverse_haversine((latitude, longitude), hypot, Direction.NORTHEAST)
     
-    return str(bottom_left[0]) + ',' + str(bottom_left[1]) + ',' + str(top_right[0]) + ',' + str(top_right[1])
+    return f'{bottom_left[0]:.8f}' + ',' + f'{bottom_left[1]:.8f}' + ',' + f'{top_right[0]:.8f}' + ',' + f'{top_right[1]:.8f}'
     
 
 def get_feature_type_in_bbox(bbox, feature_type, API_key):
