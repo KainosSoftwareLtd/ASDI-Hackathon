@@ -4,6 +4,10 @@ import math
 import pathlib
 from haversine import *
 from tqdm import tqdm
+from Enums.land_type import LAND_TYPE
+import requests
+import os
+
 
 ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
 PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
@@ -144,3 +148,174 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     point_set_df = convert_point_list_to_df(points)
 
     return point_set_df
+
+def get_land_type(latitude, longitude, resolution_diameter, API_key):
+    
+    bbox = get_bbox_of_point(latitude, longitude, resolution_diameter)
+    
+    land_types = []
+    
+    if is_airport(bbox, API_key):
+        land_types.append(LAND_TYPE.AIRPORT.value)
+    if is_water(bbox, API_key):
+        land_types.append(LAND_TYPE.WATER.value)
+    if is_building(bbox, API_key):
+        land_types.append(LAND_TYPE.BUILDING.value)
+    if is_railway_station(bbox, API_key):
+        land_types.append(LAND_TYPE.RAILWAYSTATION.value)
+    if is_green_space(bbox, API_key):
+        land_types.append(LAND_TYPE.GREENSPACE.value)
+    if is_urban_area(bbox, API_key):
+        land_types.append(LAND_TYPE.URBANAREA.value)
+
+    return ', '.join(land_types)
+    
+    
+def get_bbox_of_point(latitude, longitude, resolution_diameter):
+    """ Given a point get the bbox around that point at the given resolution
+
+    Args:
+        latitude (flaot): _description_
+        longitude (float): _description_
+        resolution_diameter (float): This corrosponds to the value used to generate the 2D point array 
+    
+    Returns:
+        bounding box (string): formatted like so bbox_bottom_left_lat,bbox_bottom_left_long,bbox_top_right_lat,bbox_top_right_long
+    """
+    
+    radius = resolution_diameter / 2
+    hypot = radius / math.cos(math.radians(45))
+    
+    bottom_left = inverse_haversine((latitude, longitude), hypot, Direction.SOUTHWEST)
+    top_right = inverse_haversine((latitude, longitude), hypot, Direction.NORTHEAST)
+    
+    return str(bottom_left[0]) + ',' + str(bottom_left[1]) + ',' + str(top_right[0]) + ',' + str(top_right[1])
+    
+
+def get_feature_type_in_bbox(bbox, feature_type, API_key):
+        
+    wfs_endpoint = ('https://api.os.uk/features/v1/wfs?')
+
+    service = 'wfs'
+    request = 'GetFeature'
+    version = '2.0.0'
+    typeNames = feature_type
+    outputFormat = 'GEOJSON'
+    OS_DATA_HUB_API_KEY = API_key
+
+    params_wfs = {'service':service,
+                  'key': OS_DATA_HUB_API_KEY,
+                  'request':request,
+                  'version':version,
+                  'typeNames':typeNames,
+                  'outputFormat':outputFormat,
+                  'bbox': bbox,
+                 }
+
+    try:
+        r = requests.get(wfs_endpoint, params=params_wfs)
+        r.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(e)
+    
+    if r.status_code == 200:
+        payload = r.json()    
+    else:
+        print(r.status_code)
+        raise Exception(r.status_code)
+    
+    return payload
+    
+    
+def is_airport(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_Airports', API_key)
+    if len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_water(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_Surfacewater', API_key)
+    if len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_building(bbox, API_key):
+    result_local = get_feature_type_in_bbox(bbox, 'Zoomstack_LocalBuildings', API_key)
+    result_district = get_feature_type_in_bbox(bbox, 'Zoomstack_DistrictBuildings', API_key)
+    
+    if len(result_local['features']) > 0:
+        return True
+    elif len(result_district['features']) > 0:
+        return True
+    else:
+        return False
+    
+def is_green_space(bbox, API_key):
+    result_Greenspace = get_feature_type_in_bbox(bbox, 'Zoomstack_Greenspace', API_key)
+    result_NationalParks = get_feature_type_in_bbox(bbox, 'Zoomstack_NationalParks', API_key)
+    result_Woodland = get_feature_type_in_bbox(bbox, 'Zoomstack_Woodland', API_key)
+    
+    if len(result_Greenspace['features']) > 0:
+        return True
+    elif len(result_NationalParks['features']) > 0:
+        return True
+    elif len(result_Woodland['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_railway_station(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_RailwayStations', API_key)
+    if len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_urban_area(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_UrbanAreas', API_key)
+    if len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end_point_index, diameter_resolution, API_key):
+  # Open CSV
+  points_df = pd.read_csv(csv_path)
+  # Get correct set of points
+  subset_points_df = points_df.loc[start_point_index:end_point_index]
+  
+  print('Number of points to be processed:', len(subset_points_df))
+  print('Start/End index (inclusive):', start_point_index, end_point_index)
+  print('Start point:', subset_points_df.iloc[0]['Latitude'], ',', points_df.iloc[0]['Longitude'])
+  print('End point:', points_df.iloc[-1]['Latitude'], ',', points_df.iloc[-1]['Longitude'])
+  
+  
+  land_type_list = []
+
+  t0 = time()
+  for i in tqdm(range(len(subset_points_df))):
+    if i % 10 == 0 and i != 0:
+      print('Saving and waiting...')
+      # Create or append to a csv while waiting
+      df = pd.DataFrame(dtype='object', index=subset_points_df.index[:len(land_type_list)])
+      df['Land_Type'] = land_type_list
+      df.to_csv(save_path)
+      print('Last batch of points:' , land_type_list)
+      while(time() - t0 < 2):
+        continue
+      t0 = time() # reset the timer
+    
+    land_type = get_land_type(subset_points_df.iloc[i]['Latitude'],
+                              subset_points_df.iloc[i]['Longitude'],
+                              diameter_resolution,
+                              API_key)
+    land_type_list.append(land_type)
+  
+  print('Saving...')
+  df = pd.DataFrame(dtype='object', index=subset_points_df.index)
+  df['Land_Type'] = land_type_list
+  df.to_csv(save_path)
+  print('Done.')
+  
