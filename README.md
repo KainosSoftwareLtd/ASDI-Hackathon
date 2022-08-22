@@ -14,3 +14,5 @@ The calculation of the score has been left open-ended due to the inevitable intr
 Overlays for each type of data should provide enough transparency for city planners to understand why is the green score that value at that location.
 
 Make point resolution is itself a parameterised variable given the weighted KNN we have deployed
+
+Functions for an Air Quality Score and Greenspace Score have been derived naively with the latter having at least some input from WHO standards. The naive formulas are only meant to serve an MVP product. We would welcome domain experts to provide their insight into calibrating these formulas to be more informed.

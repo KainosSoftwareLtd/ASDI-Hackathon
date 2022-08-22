@@ -497,11 +497,11 @@ def upload_pickle_to_s3(bucket, name_pickle_file):
         print('Failed upload')
         
 def upload_df_to_s3(bucket, name_df_file):
-    """ Upload local model pickle to the designated AWS bucket
+    """ Upload local data(frame) file to the designated AWS bucket
 
     Args:
         bucket (string): name of bucket, e.g. asdi-hackathon
-        name_pickle (string): name of model pickle file to upload including the extension .pkl
+        name_df_file (string): name of data(frame) file to upload including the extension .csv or .parquet
 
     Returns:
         Confirmation of successful/unsuccessful upload
@@ -509,6 +509,41 @@ def upload_df_to_s3(bucket, name_df_file):
     s3 = boto3.resource('s3')
     try:
         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/' + name_df_file, bucket, name_df_file)
+        print('Successful upload')
+    except:
+        print('Failed upload')
+        
+def upload_app_py_to_s3(bucket, name_py_file):
+    """ Upload local Python script to the designated AWS bucket
+
+    Args:
+        bucket (string): name of bucket, e.g. asdi-hackathon
+        name_py_file (string): name of Python script file to upload including the extension .py
+
+    Returns:
+        Confirmation of successful/unsuccessful upload
+    """
+    s3 = boto3.resource('s3')
+    try:
+        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/' + name_py_file, bucket, name_py_file)
+        print('Successful upload')
+    except:
+        print('Failed upload')
+        
+def upload_file_to_s3(s3_bucket, local_path_from_root, s3_file_key):
+    """ Upload file to the designated AWS bucket and subfolder if necessary
+
+    Args:
+        s3_bucket (string): name of bucket, e.g. asdi-hackathon
+        local_path_from_root (string): local path to file from root (root = 'ASDI-Hackathon' folder)
+        s3_key (string): desired path to file from root (root = 'asdi-hackathon' s3 bucket), e.g. pickles/co_model.pkl
+
+    Returns:
+        Confirmation of successful/unsuccessful upload
+    """
+    s3 = boto3.resource('s3')
+    try:
+        s3.meta.client.upload_file(ROOT_FOLDER_PATH + local_path_from_root, s3_bucket, s3_file_key)
         print('Successful upload')
     except:
         print('Failed upload')
