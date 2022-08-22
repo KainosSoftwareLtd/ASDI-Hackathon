@@ -449,37 +449,7 @@ def fill_points_df():
     total_time_taken = time_taken1 + time_taken2 + time_taken3
     print('TOTAL time taken:', total_time_taken)
     
-    #save dataframe to csv
-    df.to_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', index = False)
-    
-    #save dataframe to parquet
-    df.to_parquet(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', engine = 'auto', compression = None, index = False)
-    
     return df
-
-def upload_final_df_to_s3(bucket, file_type):
-    """ Upload the local final_csv.csv or final_parquet.parquet to the designated AWS bucket
-
-    Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
-        file_type (string): 'csv' for the csv file or 'parquet' for the parquet file
-
-    Returns:
-        Confirmation of successful/unsuccessful upload
-    """
-    s3 = boto3.resource('s3')
-    if file_type == 'csv':
-        try:
-            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', bucket, 'final-data/final_csv.csv')
-            print('Successful upload')
-        except:
-            print('Failed upload')
-    elif file_type == 'parquet':
-        try:
-            s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_parquet.parquet', bucket, 'final-data/final_parquet.parquet')
-            print('Successful upload')
-        except:
-            print('Failed upload')
             
 def upload_pickle_to_s3(bucket, model, key):
     """  Pickle model and upload to the designated S3 AWS bucket
@@ -487,7 +457,7 @@ def upload_pickle_to_s3(bucket, model, key):
     Args:
         bucket (string): name of bucket, e.g. asdi-hackathon
         model (object): in memory model to pickle
-        key (string): key including bucket subfolder to save to and the filename of the .pkl file
+        key (string): path in bucket to save to including any subfolders and the filename and extension
 
     Returns:
         Confirmation of successful/unsuccessful upload
@@ -506,7 +476,7 @@ def upload_df_to_s3(bucket, df, key):
     Args:
         bucket (string): name of bucket, e.g. asdi-hackathon
         df (Pandas dataframe): in memory dataframe to save as .csv
-        key (string): key including bucket subfolder to save to and the filename of the .csv file
+        key (string): path in bucket to save to including any subfolders and the filename and extension
 
     Returns:
         Confirmation of successful/unsuccessful upload
@@ -519,6 +489,12 @@ def upload_df_to_s3(bucket, df, key):
         print('Successful upload')
     except:
         print('Failed upload')
+        
+def read_csv_from_s3(bucket, key):
+    client = boto3.client('s3')
+    obj = client.get_object(Bucket=bucket, Key=key)
+    df = pd.read_csv(obj['Body'])
+    return df
         
 # def upload_df_to_s3(bucket, name_df_file):
 #     """ Upload local data(frame) file to the designated AWS bucket

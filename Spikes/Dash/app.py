@@ -6,15 +6,19 @@ import plotly.express as px
 import pandas as pd
 from dash.dependencies import Input, Output
 import plotly.figure_factory as ff
+import boto3
 
 app = Dash(__name__)
 
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
+#import data CSV locally
+#df = pd.read_csv('./data/final_df.csv')
+#df = pd.read_parquet('./data/final_df.parquet', engine ='auto')
 
-#import data CSV
-#df = pd.read_csv('./data/final_csv.csv')
-df = pd.read_parquet('./data/final_parquet.parquet', engine ='auto')
+#import data CSV from s3 bucket
+client = boto3.client('s3')
+obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
+df = pd.read_csv(obj['Body'])
+
 
 app.layout = html.Div(children=[
     html.H2(children='Green Space Suggestion Dashboard'),
