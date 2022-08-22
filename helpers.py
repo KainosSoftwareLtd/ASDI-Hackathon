@@ -6,6 +6,8 @@ import pathlib
 from haversine import *
 from tqdm import tqdm
 import boto3
+from io import StringIO # python3; python2: BytesIO 
+import pickle
 import time
 import math
 from multiprocessing import Pool
@@ -479,71 +481,93 @@ def upload_final_df_to_s3(bucket, file_type):
         except:
             print('Failed upload')
             
-def upload_pickle_to_s3(bucket, name_pickle_file):
-    """ Upload local model pickle to the designated AWS bucket
+def upload_pickle_to_s3(bucket, model, key):
+    """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
         bucket (string): name of bucket, e.g. asdi-hackathon
-        name_pickle_file (string): name of model pickle file to upload including the extension .pkl
+        model (object): in memory model to pickle
+        key (string): key including bucket subfolder to save to and the filename of the .pkl file
 
     Returns:
         Confirmation of successful/unsuccessful upload
     """
     s3 = boto3.resource('s3')
     try:
-        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Pickles/' + name_pickle_file, bucket, 'pickles/' + name_pickle_file)
+        pickle_byte_obj = pickle.dumps([model])
+        s3.Object(bucket,key).put(Body=pickle_byte_obj)
         print('Successful upload')
     except:
         print('Failed upload')
         
-def upload_df_to_s3(bucket, name_df_file):
-    """ Upload local data(frame) file to the designated AWS bucket
+def upload_df_to_s3(bucket, df, key):
+    """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
         bucket (string): name of bucket, e.g. asdi-hackathon
-        name_df_file (string): name of data(frame) file to upload including the extension .csv or .parquet
+        df (Pandas dataframe): in memory dataframe to save as .csv
+        key (string): key including bucket subfolder to save to and the filename of the .csv file
 
     Returns:
         Confirmation of successful/unsuccessful upload
     """
     s3 = boto3.resource('s3')
     try:
-        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/' + name_df_file, bucket, name_df_file)
+        csv_buffer = StringIO()
+        df.to_csv(csv_buffer)
+        s3.Object(bucket, key).put(Body=csv_buffer.getvalue())
         print('Successful upload')
     except:
         print('Failed upload')
         
-def upload_app_py_to_s3(bucket, name_py_file):
-    """ Upload local Python script to the designated AWS bucket
+# def upload_df_to_s3(bucket, name_df_file):
+#     """ Upload local data(frame) file to the designated AWS bucket
 
-    Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
-        name_py_file (string): name of Python script file to upload including the extension .py
+#     Args:
+#         bucket (string): name of bucket, e.g. asdi-hackathon
+#         name_df_file (string): name of data(frame) file to upload including the extension .csv or .parquet
 
-    Returns:
-        Confirmation of successful/unsuccessful upload
-    """
-    s3 = boto3.resource('s3')
-    try:
-        s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/' + name_py_file, bucket, name_py_file)
-        print('Successful upload')
-    except:
-        print('Failed upload')
+#     Returns:
+#         Confirmation of successful/unsuccessful upload
+#     """
+#     s3 = boto3.resource('s3')
+#     try:
+#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/' + name_df_file, bucket, name_df_file)
+#         print('Successful upload')
+#     except:
+#         print('Failed upload')
         
-def upload_file_to_s3(s3_bucket, local_path_from_root, s3_file_key):
-    """ Upload file to the designated AWS bucket and subfolder if necessary
+# def upload_app_py_to_s3(bucket, name_py_file):
+#     """ Upload local Python script to the designated AWS bucket
 
-    Args:
-        s3_bucket (string): name of bucket, e.g. asdi-hackathon
-        local_path_from_root (string): local path to file from root (root = 'ASDI-Hackathon' folder)
-        s3_key (string): desired path to file from root (root = 'asdi-hackathon' s3 bucket), e.g. pickles/co_model.pkl
+#     Args:
+#         bucket (string): name of bucket, e.g. asdi-hackathon
+#         name_py_file (string): name of Python script file to upload including the extension .py
 
-    Returns:
-        Confirmation of successful/unsuccessful upload
-    """
-    s3 = boto3.resource('s3')
-    try:
-        s3.meta.client.upload_file(ROOT_FOLDER_PATH + local_path_from_root, s3_bucket, s3_file_key)
-        print('Successful upload')
-    except:
-        print('Failed upload')
+#     Returns:
+#         Confirmation of successful/unsuccessful upload
+#     """
+#     s3 = boto3.resource('s3')
+#     try:
+#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/' + name_py_file, bucket, name_py_file)
+#         print('Successful upload')
+#     except:
+#         print('Failed upload')
+        
+# def upload_file_to_s3(s3_bucket, local_path_from_root, s3_file_key):
+#     """ Upload file to the designated AWS bucket and subfolder if necessary
+
+#     Args:
+#         s3_bucket (string): name of bucket, e.g. asdi-hackathon
+#         local_path_from_root (string): local path to file from root (root = 'ASDI-Hackathon' folder)
+#         s3_key (string): desired path to file from root (root = 'asdi-hackathon' s3 bucket), e.g. pickles/co_model.pkl
+
+#     Returns:
+#         Confirmation of successful/unsuccessful upload
+#     """
+#     s3 = boto3.resource('s3')
+#     try:
+#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + local_path_from_root, s3_bucket, s3_file_key)
+#         print('Successful upload')
+#     except:
+#         print('Failed upload')
