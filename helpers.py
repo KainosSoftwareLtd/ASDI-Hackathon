@@ -104,136 +104,136 @@ def popdensity_function(lat, lon):
     preds = popdensity_model.predict(input)
     return preds[0]
 
-def aqi_function_og(lat, lon):
-    co_value = co_function(lat, lon)
-    no2_value = no2_function(lat, lon)
-    o3_value = o3_function(lat, lon)
-    so2_value = so2_function(lat, lon)
+# def aqi_function_og(lat, lon):
+#     co_value = co_function(lat, lon)
+#     no2_value = no2_function(lat, lon)
+#     o3_value = o3_function(lat, lon)
+#     so2_value = so2_function(lat, lon)
     
-    #data arrives as unit mol/m^2 (moles per metre squared)
-    #moles to g by multiplying by molar mass of molecule
-    co_molar_mass = 28.01
-    no2_molar_mass = 46.0055
-    o3_molar_mass = 48
-    so2_molar_mass = 64.066
+#     #data arrives as unit mol/m^2 (moles per metre squared)
+#     #moles to g by multiplying by molar mass of molecule
+#     co_molar_mass = 28.01
+#     no2_molar_mass = 46.0055
+#     o3_molar_mass = 48
+#     so2_molar_mass = 64.066
     
-    #need conversion to 3d concentration unit, satellite data is 2d scan of Earth so arrives as m-2
-    #xarray data details says its mol/m-2 but the documentation says it is in fact mol/cm-2; 
-    #going to go with xarray data details as documentation maybe outdated - assume m-2
-    #all are total vertical column, assuming uniform distribution, divide by height of atmosphere recorded (49500m) to give a natural concentration for entire atmosphere
+#     #need conversion to 3d concentration unit, satellite data is 2d scan of Earth so arrives as m-2
+#     #xarray data details says its mol/m-2 but the documentation says it is in fact mol/cm-2; 
+#     #going to go with xarray data details as documentation maybe outdated - assume m-2
+#     #all are total vertical column, assuming uniform distribution, divide by height of atmosphere recorded (49500m) to give a natural concentration for entire atmosphere
     
-    #1 g/m^3 = 1 ppm
-    #1 ppm = 1000 ppb therefore * 1000 for ppm --> ppb conversion
-    #standard units for o3 = ppm, co = ppm, so2 = ppb and no2 = ppb (according to EPA reference tables)
+#     #1 g/m^3 = 1 ppm
+#     #1 ppm = 1000 ppb therefore * 1000 for ppm --> ppb conversion
+#     #standard units for o3 = ppm, co = ppm, so2 = ppb and no2 = ppb (according to EPA reference tables)
     
-    #have to assume hourly as satellite takes snapshot lasting less than an hour
-    #but CO only has 8 hour EPA data available (artifact of the gas itself)
+#     #have to assume hourly as satellite takes snapshot lasting less than an hour
+#     #but CO only has 8 hour EPA data available (artifact of the gas itself)
     
-    #data arriving as total vertical column, i.e. number of molecules viewable from perspective above Earth of column
-    #i.e. if column cylindrical, the number of molecules viewable from a planar view of top circle
-    #some molecules may be behind others so not accurate as is
-    #need to use atmospheric model of different layers of Earth's atmosphere (like air pressure) to possibly derive near-surface value
-    #as one moves up atmospheric levels, the density of the atmosphere reduces...
-    #can use data accompanying NO2 value and assume similar to e.g. CO but there maybe slight differences depending on e.g.
-    #penetratability of a CO molecule to higher levels of atmosphere if more/less dense than surrounding molecules 
+#     #data arriving as total vertical column, i.e. number of molecules viewable from perspective above Earth of column
+#     #i.e. if column cylindrical, the number of molecules viewable from a planar view of top circle
+#     #some molecules may be behind others so not accurate as is
+#     #need to use atmospheric model of different layers of Earth's atmosphere (like air pressure) to possibly derive near-surface value
+#     #as one moves up atmospheric levels, the density of the atmosphere reduces...
+#     #can use data accompanying NO2 value and assume similar to e.g. CO but there maybe slight differences depending on e.g.
+#     #penetratability of a CO molecule to higher levels of atmosphere if more/less dense than surrounding molecules 
     
-    #alternative is to use something like GAMs to model a combination of reference table BP ranges into one
+#     #alternative is to use something like GAMs to model a combination of reference table BP ranges into one
     
-    #basic assumption
-    #no conversion m-2 to m-3, m-2 = m-3
-    co_converted = (co_value * co_molar_mass)
-    no2_converted = ((no2_value * no2_molar_mass)) * 1000
-    o3_converted = (o3_value * o3_molar_mass)
-    so2_converted = ((so2_value * so2_molar_mass)) * 1000
+#     #basic assumption
+#     #no conversion m-2 to m-3, m-2 = m-3
+#     co_converted = (co_value * co_molar_mass)
+#     no2_converted = ((no2_value * no2_molar_mass)) * 1000
+#     o3_converted = (o3_value * o3_molar_mass)
+#     so2_converted = ((so2_value * so2_molar_mass)) * 1000
     
-    aq_metric_converted = [co_converted, no2_converted, o3_converted, so2_converted]
+#     aq_metric_converted = [co_converted, no2_converted, o3_converted, so2_converted]
 
-    #need to calculate AQI of each pollutant separately
-    #the lowest AQI value of the pollutants is considered the real AQI value
+#     #need to calculate AQI of each pollutant separately
+#     #the lowest AQI value of the pollutants is considered the real AQI value
     
-    #reference tables
-    #source: https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf
-    co_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
-                             'IHi': [50, 100, 150, 200, 300, 500], 
-                             #8 hour
-                             'BPLo': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 
-                             'BPHi': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
+#     #reference tables
+#     #source: https://www.airnow.gov/sites/default/files/2020-05/aqi-technical-assistance-document-sept2018.pdf
+#     co_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+#                              'IHi': [50, 100, 150, 200, 300, 500], 
+#                              #8 hour
+#                              'BPLo': [0, 4.5, 9.5, 12.5, 15.5, 30.5], 
+#                              'BPHi': [4.4, 9.4, 12.4, 15.4, 30.4, 50.4]})
     
-    no2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
-                              'IHi': [50, 100, 150, 200, 300, 500], 
-                              #1 hour
-                              'BPLo': [0, 54, 101, 361, 650, 1250], 
-                              'BPHi': [53, 100, 360, 649, 1249, 2049]})
+#     no2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+#                               'IHi': [50, 100, 150, 200, 300, 500], 
+#                               #1 hour
+#                               'BPLo': [0, 54, 101, 361, 650, 1250], 
+#                               'BPHi': [53, 100, 360, 649, 1249, 2049]})
     
-    o3_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
-                             'IHi': [50, 100, 150, 200, 300, 500], 
-                             #1 hour, interpolated first 2 as no data for 1 hour (only 8 hour version)
-                             'BPLo': [0, 0.0626, 0.126, 0.165, 0.205, 0.405], 
-                             'BPHi': [0.0625, 0.125, 0.164, 0.204, 0.404, 0.604]})
+#     o3_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+#                              'IHi': [50, 100, 150, 200, 300, 500], 
+#                              #1 hour, interpolated first 2 as no data for 1 hour (only 8 hour version)
+#                              'BPLo': [0, 0.0626, 0.126, 0.165, 0.205, 0.405], 
+#                              'BPHi': [0.0625, 0.125, 0.164, 0.204, 0.404, 0.604]})
     
-    so2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
-                              'IHi': [50, 100, 150, 200, 300, 500], 
-                              #1 hour
-                              'BPLo': [0, 36, 76, 186, 305, 605], 
-                              'BPHi': [35, 75, 185, 304, 604, 1004]})
+#     so2_table = pd.DataFrame({'ILo': [0, 51, 101, 151, 201, 301], 
+#                               'IHi': [50, 100, 150, 200, 300, 500], 
+#                               #1 hour
+#                               'BPLo': [0, 36, 76, 186, 305, 605], 
+#                               'BPHi': [35, 75, 185, 304, 604, 1004]})
     
     
-    aqi_tables = [co_table, no2_table, o3_table, so2_table]
+#     aqi_tables = [co_table, no2_table, o3_table, so2_table]
     
-    #manual calculation of AQI inc referencing EPA air quality standards tables
-    #Cp = truncated concentration of pollutant p
-    #BPHi = concentration breakpoint i.e. greater than or equal to Cp or upper bound on cp range
-    #BPLo = concentration breakpoint i.e. less than or equal to Cp or lower bound on cp range
-    #IHi = AQI value corresponding to BPHi, i.e. upper bound on aqi range
-    #ILo = AQI value corresponding to BPLo, i.e. lower bound on aqi range
+#     #manual calculation of AQI inc referencing EPA air quality standards tables
+#     #Cp = truncated concentration of pollutant p
+#     #BPHi = concentration breakpoint i.e. greater than or equal to Cp or upper bound on cp range
+#     #BPLo = concentration breakpoint i.e. less than or equal to Cp or lower bound on cp range
+#     #IHi = AQI value corresponding to BPHi, i.e. upper bound on aqi range
+#     #ILo = AQI value corresponding to BPLo, i.e. lower bound on aqi range
     
-    aqi_list = []
-    labels = ['CO AQI -> ', 'NO2 AQI -> ', 'O3 AQI -> ', 'SO2 AQI -> ']
-    aqi_category_dict = {'Good': [0, 50], 
-                            'Moderate': [51, 100], 
-                            'Unhealthy for Sensitive Groups': [101, 150], 
-                            'Unhealthy': [151, 200], 
-                            'Very Unhealthy': [201, 300], 
-                            'Hazardous': [301, 500]}
-    for concentration, table, label in zip(aq_metric_converted, aqi_tables, labels):
-        Cp = concentration
-        BPHi = 'Out of Bounds'
-        BPLo = 'Out of Bounds'
-        for index, row in table.iterrows():
-            if concentration <= table['BPHi'].iloc[index] and concentration >= table['BPLo'].iloc[index]:
-                BPHi = table['BPHi'].iloc[index]
-                BPLo = table['BPLo'].iloc[index]
-            else:
-                continue
-        IHi = 'Out of bounds'
-        ILo = 'Out of Bounds'
-        for index, row in table.iterrows():
-            if concentration <= table['IHi'].iloc[index] and concentration >= table['ILo'].iloc[index]:
-                IHi = table['IHi'].iloc[index]
-                ILo = table['ILo'].iloc[index]
-            else:
-                continue
-        try:
-            aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
-        except:
-            print(label, 'Values(s) out of bounds ->', 'IHi:', IHi, 'ILo:', ILo, 'BPHi:', BPHi, 'BPLo:', BPLo)
+#     aqi_list = []
+#     labels = ['CO AQI -> ', 'NO2 AQI -> ', 'O3 AQI -> ', 'SO2 AQI -> ']
+#     aqi_category_dict = {'Good': [0, 50], 
+#                             'Moderate': [51, 100], 
+#                             'Unhealthy for Sensitive Groups': [101, 150], 
+#                             'Unhealthy': [151, 200], 
+#                             'Very Unhealthy': [201, 300], 
+#                             'Hazardous': [301, 500]}
+#     for concentration, table, label in zip(aq_metric_converted, aqi_tables, labels):
+#         Cp = concentration
+#         BPHi = 'Out of Bounds'
+#         BPLo = 'Out of Bounds'
+#         for index, row in table.iterrows():
+#             if concentration <= table['BPHi'].iloc[index] and concentration >= table['BPLo'].iloc[index]:
+#                 BPHi = table['BPHi'].iloc[index]
+#                 BPLo = table['BPLo'].iloc[index]
+#             else:
+#                 continue
+#         IHi = 'Out of bounds'
+#         ILo = 'Out of Bounds'
+#         for index, row in table.iterrows():
+#             if concentration <= table['IHi'].iloc[index] and concentration >= table['ILo'].iloc[index]:
+#                 IHi = table['IHi'].iloc[index]
+#                 ILo = table['ILo'].iloc[index]
+#             else:
+#                 continue
+#         try:
+#             aq_index = (IHi - ILo / BPHi - BPLo) * (Cp - BPLo) + ILo
+#         except:
+#             print(label, 'Values(s) out of bounds ->', 'IHi:', IHi, 'ILo:', ILo, 'BPHi:', BPHi, 'BPLo:', BPLo)
         
-        aqi_category = ''
-        for key in aqi_category_dict:
-                if (aq_index < max(aqi_category_dict[key])) and (aq_index > min(aqi_category_dict[key])):
-                    aqi_category = key
-        if aqi_category == '':
-            aqi_category = 'Out of Bounds'
+#         aqi_category = ''
+#         for key in aqi_category_dict:
+#                 if (aq_index < max(aqi_category_dict[key])) and (aq_index > min(aqi_category_dict[key])):
+#                     aqi_category = key
+#         if aqi_category == '':
+#             aqi_category = 'Out of Bounds'
                 
-        print(label + aqi_category + ' -> ' + str(aq_index))
+#         print(label + aqi_category + ' -> ' + str(aq_index))
 
-        aqi_list.append(aq_index)
+#         aqi_list.append(aq_index)
     
-    print('\n')
-    for key in aqi_category_dict:
-        print(key, aqi_category_dict[key])
+#     print('\n')
+#     for key in aqi_category_dict:
+#         print(key, aqi_category_dict[key])
     
-    return max(aqi_list)
+#     return max(aqi_list)
 
 def get_aqs_function(lat, lon):
     """Takes a latitude and longitude coordinate and calculates the Air Quality Index at this point.
@@ -496,23 +496,6 @@ def read_csv_from_s3(bucket, key):
     df = pd.read_csv(obj['Body'])
     return df
         
-# def upload_df_to_s3(bucket, name_df_file):
-#     """ Upload local data(frame) file to the designated AWS bucket
-
-#     Args:
-#         bucket (string): name of bucket, e.g. asdi-hackathon
-#         name_df_file (string): name of data(frame) file to upload including the extension .csv or .parquet
-
-#     Returns:
-#         Confirmation of successful/unsuccessful upload
-#     """
-#     s3 = boto3.resource('s3')
-#     try:
-#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/data/' + name_df_file, bucket, name_df_file)
-#         print('Successful upload')
-#     except:
-#         print('Failed upload')
-        
 # def upload_app_py_to_s3(bucket, name_py_file):
 #     """ Upload local Python script to the designated AWS bucket
 
@@ -526,24 +509,6 @@ def read_csv_from_s3(bucket, key):
 #     s3 = boto3.resource('s3')
 #     try:
 #         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/' + name_py_file, bucket, name_py_file)
-#         print('Successful upload')
-#     except:
-#         print('Failed upload')
-        
-# def upload_file_to_s3(s3_bucket, local_path_from_root, s3_file_key):
-#     """ Upload file to the designated AWS bucket and subfolder if necessary
-
-#     Args:
-#         s3_bucket (string): name of bucket, e.g. asdi-hackathon
-#         local_path_from_root (string): local path to file from root (root = 'ASDI-Hackathon' folder)
-#         s3_key (string): desired path to file from root (root = 'asdi-hackathon' s3 bucket), e.g. pickles/co_model.pkl
-
-#     Returns:
-#         Confirmation of successful/unsuccessful upload
-#     """
-#     s3 = boto3.resource('s3')
-#     try:
-#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + local_path_from_root, s3_bucket, s3_file_key)
 #         print('Successful upload')
 #     except:
 #         print('Failed upload')
