@@ -220,7 +220,7 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
     
     if r.status_code == 200:
         payload = r.json()
-    elif r.status_code == 229:
+    elif r.status_code == 429:
         # Wait a minute and 5 seconds
         t0 = time()
         while(time() - t0 < 65):
@@ -234,7 +234,7 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
         payload = r.json()
         print('Second times a charm!')
         
-        if r.status_code == 229:
+        if r.status_code == 429:
             print('Not long enough')
             print(r.status_code)
             return 'Error - '+str(r.status_code)
