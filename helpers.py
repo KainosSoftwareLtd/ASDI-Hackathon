@@ -17,8 +17,9 @@ from multiprocessing import cpu_count
 from multiprocess import Pool
 from multiprocess import cpu_count
 
-ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
-PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
+#for using locally
+# ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
+# PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
 
 def co_function(lat, lon):
     #preprocessing, convert lat/lon to radians
@@ -27,8 +28,12 @@ def co_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    co_model = pickle.load(open(PICKLE_FOLDER_PATH + 'co_model.pkl', 'rb'))
+    #load model from pickle locally
+    #co_model = pickle.load(open(PICKLE_FOLDER_PATH + 'co_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    co_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/co_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = co_model.predict(input)
@@ -41,8 +46,12 @@ def no2_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    no2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'no2_model.pkl', 'rb'))
+    #load model from pickle locally
+    #no2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'no2_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    no2_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/no2_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = no2_model.predict(input)
@@ -55,8 +64,12 @@ def o3_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    o3_model = pickle.load(open(PICKLE_FOLDER_PATH + 'o3_model.pkl', 'rb'))
+    #load model from pickle locally
+    #o3_model = pickle.load(open(PICKLE_FOLDER_PATH + 'o3_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    o3_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/o3_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = o3_model.predict(input)
@@ -69,8 +82,12 @@ def so2_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    so2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'so2_model.pkl', 'rb'))
+    #load model from pickle locally
+    #so2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'so2_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    so2_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/so2_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = so2_model.predict(input)
@@ -83,8 +100,12 @@ def ai_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    ai_model = pickle.load(open(PICKLE_FOLDER_PATH + 'ai_model.pkl', 'rb'))
+    #load model from pickle locally
+    #ai_model = pickle.load(open(PICKLE_FOLDER_PATH + 'ai_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    ai_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/ai_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = ai_model.predict(input)
@@ -97,8 +118,12 @@ def popdensity_function(lat, lon):
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle
-    popdensity_model = pickle.load(open(PICKLE_FOLDER_PATH + 'popdensity_model.pkl', 'rb'))
+    #load model from pickle locally
+    #popdensity_model = pickle.load(open(PICKLE_FOLDER_PATH + 'popdensity_model.pkl', 'rb'))
+    
+    #load model from pickle in s3 bucket
+    s3 = boto3.resource('s3')
+    popdensity_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/popdensity_model.pkl').get()['Body'].read())
     
     #predict with model
     preds = popdensity_model.predict(input)
@@ -244,7 +269,14 @@ def get_aqs_function(lat, lon):
     Returns:
         The Air Quality Index at the specified coordinates. Smaller value = higher air quality.
     """
-    df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_csv.csv', index_col = 0)
+    #read locally
+    #df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_df.csv', index_col = 0)
+    
+    #read from s3 bucket
+    client = boto3.client('s3')
+    obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
+    df = pd.read_csv(obj['Body'])
+    
     df = df[np.isclose(df['Latitude'], lat)]
     df = df[np.isclose(df['Longitude'], lon)]
     return df['AQ_score'].item()
@@ -419,7 +451,13 @@ def apply_greenspace_score_function(df):
 
 def fill_points_df():
     
-    df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
+    #read locally
+    #df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
+    
+    #read from s3 bucket
+    client = boto3.client('s3')
+    obj = client.get_object(Bucket='asdi-hackathon', Key='points_df.csv')
+    df = pd.read_csv(obj['Body'])
     
     start = time.time()
     df = parallelise(df, apply_aq_functions)
@@ -495,20 +533,3 @@ def read_csv_from_s3(bucket, key):
     obj = client.get_object(Bucket=bucket, Key=key)
     df = pd.read_csv(obj['Body'])
     return df
-        
-# def upload_app_py_to_s3(bucket, name_py_file):
-#     """ Upload local Python script to the designated AWS bucket
-
-#     Args:
-#         bucket (string): name of bucket, e.g. asdi-hackathon
-#         name_py_file (string): name of Python script file to upload including the extension .py
-
-#     Returns:
-#         Confirmation of successful/unsuccessful upload
-#     """
-#     s3 = boto3.resource('s3')
-#     try:
-#         s3.meta.client.upload_file(ROOT_FOLDER_PATH + '/Spikes/Dash/' + name_py_file, bucket, name_py_file)
-#         print('Successful upload')
-#     except:
-#         print('Failed upload')

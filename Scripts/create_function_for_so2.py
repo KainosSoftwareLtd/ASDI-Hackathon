@@ -1,13 +1,7 @@
-import sys
-import pathlib
 import pandas as pd
 import numpy as np
 import boto3
 
-ROOT = pathlib.Path().absolute().parent.as_posix()
-if ROOT not in sys.path:
-    sys.path.append(ROOT)
-    
 from helpers import *
 
 client = boto3.client('s3')

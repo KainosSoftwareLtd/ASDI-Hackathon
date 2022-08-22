@@ -1,11 +1,3 @@
-import sys
-import pathlib
-import pandas as pd
-
-ROOT = pathlib.Path().absolute().parent.as_posix()
-if ROOT not in sys.path:
-    sys.path.append(ROOT)
-    
 from helpers import *
 
 final_df = fill_points_df()
