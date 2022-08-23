@@ -359,4 +359,60 @@ def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end
   df['Land_Type'] = land_type_list
   df.to_csv(save_path)
   print('Done.')
-  
+
+  def preprocess_land_type_dataframes(dataframes_list, save_path, points_df_path):
+    stacked_df = pd.concat(dataframes_list, axis=0)
+
+    points_df = pd.read_csv(points_df_path, header=0, index_col=0)
+
+    if len(stacked_df) == len(points_df):
+        land_type_points_df = pd.concat([points_df, stacked_df], axis=1)
+    else:
+        print("Error!")
+        raise Exception('Error - Lengths do not match.')
+
+    land_types = ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']
+    for l in land_types:
+        land_type_points_df[l] = land_type_points_df['Land_Type'].str.contains(pat = l).fillna(False)
+    
+    land_type_points_df = land_type_points_df.drop(columns=['Land_Type'])
+
+    land_type_points_df.to_csv(save_path)
+
+  def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end_point_index, diameter_resolution, API_key):
+    points_df = pd.read_csv(csv_path)
+    subset_points_df = points_df.loc[start_point_index:end_point_index]
+
+    print('Number of points to be processed:', len(subset_points_df))
+    print('Start/End index (inclusive):', start_point_index, end_point_index)
+    print('Start point:', subset_points_df.iloc[0]['Latitude'], ',', points_df.iloc[0]['Longitude'])
+    print('End point:', points_df.iloc[-1]['Latitude'], ',', points_df.iloc[-1]['Longitude'])
+
+
+    land_type_list = []
+    t0 = time()
+    for i in tqdm(range(len(subset_points_df))):
+      # Save every 10
+      if i % 10 == 0 and i != 0:
+        # Create or append to a csv while waiting
+        df = pd.DataFrame(dtype='object', index=subset_points_df.index[:len(land_type_list)])
+        df['Land_Type'] = land_type_list
+        df.to_csv(save_path)
+
+        # Wait 2 seconds to repeat
+        while(time() - t0 < 2):
+          continue
+        t0 = time() # reset the timer
+
+      land_type = get_land_type(subset_points_df.iloc[i]['Latitude'],
+                                subset_points_df.iloc[i]['Longitude'],
+                                diameter_resolution,
+                                API_key)
+      land_type_list.append(land_type)
+
+    print('Saving...')
+    df = pd.DataFrame(dtype='object', index=subset_points_df.index)
+    df['Land_Type'] = land_type_list
+    df.to_csv(save_path)
+    print('Done.')
+    
