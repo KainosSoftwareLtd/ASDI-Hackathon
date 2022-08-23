@@ -223,7 +223,7 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
     elif r.status_code == 429:
         # Wait a minute and 5 seconds
         t0 = time()
-        while(time() - t0 < 65):
+        while(time() - t0 < 70):
             continue
         # try again
         try:
@@ -231,8 +231,6 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
             r.raise_for_status()
         except requests.exceptions.RequestException as e:
             print(e)
-        payload = r.json()
-        print('Second times a charm!')
         
         if r.status_code == 429:
             print('Not long enough')
@@ -241,6 +239,9 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
         elif r.status_code != 200:
             print(r.status_code)
             return 'Error - '+str(r.status_code)
+        else:
+            payload = r.json()
+            print('Second times a charm!')
         # THIS NEEDS TO BE REFACTORED
     else:
         print(r.status_code)
