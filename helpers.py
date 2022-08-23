@@ -18,112 +18,118 @@ from multiprocess import Pool
 from multiprocess import cpu_count
 
 #for using locally
-# ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
-# PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
+ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
+PICKLE_FOLDER_PATH = ROOT_FOLDER_PATH + '/Pickles/'
 
-def co_function(lat, lon):
+def co_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #co_model = pickle.load(open(PICKLE_FOLDER_PATH + 'co_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    co_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/co_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        co_model = pickle.load(open(PICKLE_FOLDER_PATH + 'co_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        co_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = co_model.predict(input)
     return preds[0]
 
-def no2_function(lat, lon):
+def no2_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #no2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'no2_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    no2_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/no2_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        no2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'no2_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        no2_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = no2_model.predict(input)
     return preds[0]
 
-def o3_function(lat, lon):
+def o3_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #o3_model = pickle.load(open(PICKLE_FOLDER_PATH + 'o3_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    o3_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/o3_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        o3_model = pickle.load(open(PICKLE_FOLDER_PATH + 'o3_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        o3_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = o3_model.predict(input)
     return preds[0]
 
-def so2_function(lat, lon):
+def so2_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #so2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'so2_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    so2_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/so2_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        so2_model = pickle.load(open(PICKLE_FOLDER_PATH + 'so2_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        so2_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = so2_model.predict(input)
     return preds[0]
 
-def ai_function(lat, lon):
+def ai_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #ai_model = pickle.load(open(PICKLE_FOLDER_PATH + 'ai_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    ai_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/ai_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        ai_model = pickle.load(open(PICKLE_FOLDER_PATH + 'ai_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        ai_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = ai_model.predict(input)
     return preds[0]
 
-def popdensity_function(lat, lon):
+def popdensity_function(lat, lon, bucket = '', key = ''):
     #preprocessing, convert lat/lon to radians
     df = pd.DataFrame({'latitude': lat, 'longitude': lon}, index=[0])
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
     input = df[['latitude', 'longitude']]
     
-    #load model from pickle locally
-    #popdensity_model = pickle.load(open(PICKLE_FOLDER_PATH + 'popdensity_model.pkl', 'rb'))
-    
-    #load model from pickle in s3 bucket
-    s3 = boto3.resource('s3')
-    popdensity_model = pickle.loads(s3.Bucket('asdi-hackathon').Object('pickles/popdensity_model.pkl').get()['Body'].read())
+    if bucket == '':
+        #load model from pickle locally
+        popdensity_model = pickle.load(open(PICKLE_FOLDER_PATH + 'popdensity_model.pkl', 'rb'))
+    else:
+        #load model from pickle in s3 bucket
+        s3 = boto3.resource('s3')
+        popdensity_model = pickle.loads(s3.Bucket(bucket).Object(key).get()['Body'].read())
     
     #predict with model
     preds = popdensity_model.predict(input)
@@ -260,26 +266,29 @@ def popdensity_function(lat, lon):
     
 #     return max(aqi_list)
 
-def get_aqs_function(lat, lon):
+def get_aqs_function(lat, lon, bucket = '', key = ''):
     """Takes a latitude and longitude coordinate and calculates the Air Quality Index at this point.
 
     Args:
-        lat, lon: single float value for each. It is required that these lat, lon values exist in the referenced CSV file.
+        lat, lon (float): single float value for each. It is required that these lat, lon values exist in the referenced CSV file.
+        bucket (string): name of s3 bucket where data stored; if empty string, read from local data file
+        key (string): path of data file in s3 bucket; cannot be empty string unless bucket also empty string
 
     Returns:
         The Air Quality Index at the specified coordinates. Smaller value = higher air quality.
     """
-    #read locally
-    #df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_df.csv', index_col = 0)
-    
-    #read from s3 bucket
-    client = boto3.client('s3')
-    obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
-    df = pd.read_csv(obj['Body'])
-    
-    df = df[np.isclose(df['Latitude'], lat)]
-    df = df[np.isclose(df['Longitude'], lon)]
-    return df['AQ_score'].item()
+    if bucket == '':
+        #read locally
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/final_df.csv', index_col = 0)
+    else:
+        #read from s3 bucket
+        client = boto3.client('s3')
+        obj = client.get_object(Bucket=bucket, Key=key)
+        df = pd.read_csv(obj['Body'])
+        
+        df = df[np.isclose(df['Latitude'], lat)]
+        df = df[np.isclose(df['Longitude'], lon)]
+        return df['AQ_score'].item()
   
 def convert_point_list_to_df(points):
     """Converts list of points to a dataframe with Latitude and Longitude columns
@@ -308,7 +317,7 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     Args:
         d (float): the diameter of the circular space around a point in km (the resolution wanted)
         bottom_left (float tuple): lat/long
-        topright (float tuple): lat/long
+        top_right (float tuple): lat/long
 
     Returns:
         DataFrame: points in the bounding box ordered by row left to right, top to bottom
@@ -449,15 +458,16 @@ def apply_greenspace_score_function(df):
                                                                                     row['AQ_score'], 
                                                                                     row['Pop_density']), axis=1)
 
-def fill_points_df():
+def fill_points_df(bucket = '', key = ''):
     
-    #read locally
-    #df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
-    
-    #read from s3 bucket
-    client = boto3.client('s3')
-    obj = client.get_object(Bucket='asdi-hackathon', Key='points_df.csv')
-    df = pd.read_csv(obj['Body'])
+    if bucket == '':
+        #read locally
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
+    else:
+        #read from s3 bucket
+        client = boto3.client('s3')
+        obj = client.get_object(Bucket=bucket, Key=key)
+        df = pd.read_csv(obj['Body'])
     
     start = time.time()
     df = parallelise(df, apply_aq_functions)
