@@ -233,7 +233,7 @@ def get_feature_type_in_bbox(bbox, feature_type, API_key):
             print(e)
         
         if r.status_code == 429:
-            print('Not long enough')
+            print('Error - Not long enough')
             print(r.status_code)
             return 'Error - '+str(r.status_code)
         elif r.status_code != 200:
