@@ -420,7 +420,7 @@ def apply_popd_function(df):
     df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
     return df
 
-def greenspace_score_function(df, aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, df):
+def greenspace_score_function(df, aqs, pop_density, airport, water, building, green_space, railway_station, urban_area):
     #Population Density
     popd_pct = 50/100
     #50m2 per capita according to WHO standards or 100m2 (our resolution) per 2 people
