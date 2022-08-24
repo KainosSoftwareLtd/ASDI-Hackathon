@@ -16,3 +16,8 @@ Overlays for each type of data should provide enough transparency for city plann
 Make point resolution is itself a parameterised variable given the weighted KNN we have deployed
 
 Functions for an Air Quality Score and Greenspace Score have been derived naively with the latter having at least some input from WHO standards. The naive formulas are only meant to serve an MVP product. We would welcome domain experts to provide their insight into calibrating these formulas to be more informed.
+
+Vincenty not supported by SKLearn KNN algorithm so decided with going with Haversine given the convenience of it being supported. The error between them was so marginal, especially at our resolution that the benefit was limited anyway.
+
+Xarray package recent release did not work in Sagamaker
+

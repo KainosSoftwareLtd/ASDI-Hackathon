@@ -449,7 +449,7 @@ def greenspace_score_function(df, aqs, pop_density, airport, water, building, gr
         penalty_reward_row_sum += 1
         
     if green_space == 1:
-        penalty_reward_row_sum += 0
+        penalty_reward_row_sum += 0.5
     else:
         penalty_reward_row_sum += 1
         
@@ -459,12 +459,12 @@ def greenspace_score_function(df, aqs, pop_density, airport, water, building, gr
         penalty_reward_row_sum += 1
         
     if building == 1:
-        penalty_reward_row_sum += 0.5
+        penalty_reward_row_sum += 0.25
     else:
         penalty_reward_row_sum += 1
         
     if urban_area == 1:
-        penalty_reward_row_sum += 0.5
+        penalty_reward_row_sum += 1.25   #reward attributed to existance of urban area given assumption that urban areas probably already need greenspaces
     else:
         penalty_reward_row_sum += 1
         
