@@ -420,13 +420,13 @@ def apply_popd_function(df):
     df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
     return df
 
-def greenspace_score_function(df, aqs, pop_density, land_type):
+def greenspace_score_function(df, aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, df):
     #Population Density
     popd_pct = 50/100
     #50m2 per capita according to WHO standards or 100m2 (our resolution) per 2 people
     standard_gs_per_pop_m2 = 50
     sum_df_popd = df['Pop_density'].sum()
-    sum_df_greenspace_m2 = df[df['Land_type'] == 'greenspace'].sum() * 100   #sum of greenspace multiplied by resolution
+    sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * 100   #sum of greenspace multiplied by resolution
     gs_per_capita = sum_df_greenspace_m2 / sum_df_popd
     #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE lower weighting
     #weight <1 will decrease contribution of pop density to greenspace score
@@ -436,33 +436,62 @@ def greenspace_score_function(df, aqs, pop_density, land_type):
     popd_weight = gs_per_capita / standard_gs_per_pop_m2
     
     #Land Type
-    if (land_type == 'hospital'):
-        penalty_reward = 0
-    elif (land_type == 'hospital'):
-        penalty_reward = 0
-    elif land_type in ['hospital', 'hospital']:
-        penalty_reward = 0
+    penalty_reward_row_sum = 0
+    
+    if airport == 1:
+        penalty_reward_row_sum += 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
     else:
-        penalty_reward = 1   #no penalty_reward
+        penalty_reward_row_sum += 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
+        
+    if water == 1:
+        penalty_reward_row_sum += 0
+    else:
+        penalty_reward_row_sum += 1
+        
+    if green_space == 1:
+        penalty_reward_row_sum += 0
+    else:
+        penalty_reward_row_sum += 1
+        
+    if railway_station == 1:
+        penalty_reward_row_sum += 0
+    else:
+        penalty_reward_row_sum += 1
+        
+    if building == 1:
+        penalty_reward_row_sum += 0.5
+    else:
+        penalty_reward_row_sum += 1
+        
+    if urban_area == 1:
+        penalty_reward_row_sum += 0.5
+    else:
+        penalty_reward_row_sum += 1
+        
+    avg_penalty_reward = penalty_reward_row_sum / 6
         
     #Air Quality Score
     aqs_pct = 100 - sum(popd_weight * popd_pct)
     aqs_weight = 1
         
-    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * penalty_reward
+    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * avg_penalty_reward
     return Greenspace_score
     
 def apply_greenspace_score_function(df):
-    return df
-    df['Greenspace_score'] = df.apply(lambda row : greenspace_score_function(row['Land_type'], 
-                                                                                    row['AQ_score'], 
-                                                                                    row['Pop_density']), axis=1)
+    df['Greenspace_score'] = df.apply(lambda row : greenspace_score_function(df, row['AQ_score'], 
+                                                                                row['Pop_density'],
+                                                                                row['Airport'],
+                                                                                row['Water'],
+                                                                                row['Building'],
+                                                                                row['Green_Space'],
+                                                                                row['Railway_Station'],
+                                                                                row['Urban_Area']), axis=1)
 
 def fill_points_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/points_df.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/processed_land_type_025.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')

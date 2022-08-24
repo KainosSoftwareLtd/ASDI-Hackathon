@@ -12,12 +12,12 @@ app = Dash(__name__)
 
 #import data CSV locally
 #df = pd.read_csv('./data/final_df.csv')
-#df = pd.read_parquet('./data/final_df.parquet', engine ='auto')
+df = pd.read_csv('./data/land_type_025.csv')
 
 #import data CSV from s3 bucket
-client = boto3.client('s3')
-obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
-df = pd.read_csv(obj['Body'])
+# client = boto3.client('s3')
+# obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
+# df = pd.read_csv(obj['Body'])
 
 
 app.layout = html.Div(children=[
@@ -35,14 +35,14 @@ app.layout = html.Div(children=[
         dcc.Dropdown(id='my_dropdown',
             options=[
                         {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score', 'disabled': True},
-                        {'label': 'Population Density', 'value': 'Pop_density'},
-                        {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score'},
-                        {'label': 'AQ Carbon Monoxide', 'value': 'Value_co'},
-                        {'label': 'AQ Nitrogen Dioxide', 'value': 'Value_no2'},
-                        {'label': 'AQ Ozone', 'value': 'Value_o3'},
-                        {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2'},
-                        {'label': 'AQ Aerosol Index', 'value': 'Value_ai'},
-                        {'label': 'Current Greenspaces', 'value': 'gs_exist', 'disabled': True}
+                        {'label': 'Population Density', 'value': 'Pop_density', 'disabled': True},
+                        {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score', 'disabled': True},
+                        {'label': 'AQ Carbon Monoxide', 'value': 'Value_co', 'disabled': True},
+                        {'label': 'AQ Nitrogen Dioxide', 'value': 'Value_no2', 'disabled': True},
+                        {'label': 'AQ Ozone', 'value': 'Value_o3', 'disabled': True},
+                        {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2', 'disabled': True},
+                        {'label': 'AQ Aerosol Index', 'value': 'Value_ai', 'disabled': True},
+                        {'label': 'Current Greenspaces', 'value': 'Green_Space'}
             ],
             optionHeight=25,                    #height/space between dropdown options
             value='AQ_score',         #dropdown value selected automatically when page loads
@@ -86,7 +86,7 @@ def build_graph(column_chosen):
     #                         color = column_chosen, zoom=9.5, mapbox_style="carto-positron")
     
     # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
-    fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=100, 
+    fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=200, 
                                   opacity=0.3, center=dict(lat=51.50009, lon=0.1268072),
                                   mapbox_style="carto-positron", zoom=10.1, color_continuous_scale = 'Turbo',
                                   labels={"color": column_chosen})

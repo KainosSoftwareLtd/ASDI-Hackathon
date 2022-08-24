@@ -1,6 +1,11 @@
 #processing job Sagemaker
 #https://docs.aws.amazon.com/sagemaker/latest/dg/processing-container-run-scripts.html
 
+#ZScalar SSL Certificate issues
+#https://kainossoftwareltd.sharepoint.com/systems/SitePages/Docker---ZScaler-Fixes.aspx
+#if need to add certificates to Docker image, we don't want to then uploads this to the cloud as potential security threat
+#typical workaround is building image in CI/CD pipeline instead where there are no ssl certificate errors
+
 #Dockerfile - blueprint for building images
 #Image - template for running containers
 #Container - the actual running process where we have packaged project
@@ -35,7 +40,7 @@ ADD Scripts/main.py .
 # COPY . /ASDI-Hackathon/Scripts
 
 ADD requirements.txt /
-RUN pip3 install -r requirements.txt
+RUN pip install -r requirements.txt
 
 CMD [ "python3", "Scripts/main.py" ]
 #Lastly we specified the entry command this line is simply running python ./create_final_df.py in our container terminal
