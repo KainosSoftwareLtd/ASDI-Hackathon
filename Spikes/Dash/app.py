@@ -42,7 +42,9 @@ app.layout = html.Div(children=[
                         {'label': 'AQ Ozone', 'value': 'Value_o3', 'disabled': True},
                         {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2', 'disabled': True},
                         {'label': 'AQ Aerosol Index', 'value': 'Value_ai', 'disabled': True},
-                        {'label': 'Current Greenspaces', 'value': 'Green_Space'}
+                        {'label': 'Current Greenspaces', 'value': 'Green_Space'},
+                        {'label': 'Current Buildings', 'value': 'Building'},
+                        {'label': 'Current Urban Areas', 'value': 'Urban_Area'}
             ],
             optionHeight=25,                    #height/space between dropdown options
             value='AQ_score',         #dropdown value selected automatically when page loads
