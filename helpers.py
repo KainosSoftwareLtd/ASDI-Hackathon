@@ -449,7 +449,7 @@ def greenspace_score_function(df, aqs, pop_density, airport, water, building, gr
         penalty_reward_row_sum += 1
         
     if green_space == 1:
-        penalty_reward_row_sum += 0.5
+        penalty_reward_row_sum += 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
     else:
         penalty_reward_row_sum += 1
         
@@ -459,12 +459,12 @@ def greenspace_score_function(df, aqs, pop_density, airport, water, building, gr
         penalty_reward_row_sum += 1
         
     if building == 1:
-        penalty_reward_row_sum += 0.25
+        penalty_reward_row_sum += 0.25   #assuming building refers to more key buildings rather than less key urban area buildings, the inconvenience of replacing these with greenspaces is so high, more penalty should be attributed
     else:
         penalty_reward_row_sum += 1
         
     if urban_area == 1:
-        penalty_reward_row_sum += 1.25   #reward attributed to existance of urban area given assumption that urban areas probably already need greenspaces
+        penalty_reward_row_sum += 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
     else:
         penalty_reward_row_sum += 1
         
