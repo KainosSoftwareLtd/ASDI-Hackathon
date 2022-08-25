@@ -16,6 +16,10 @@ import math
 #multiprocess works better within Jupyter Notebooks than multiprocessing package
 from multiprocess import Pool
 from multiprocess import cpu_count
+from Enums.land_type import LAND_TYPE
+import requests
+from time import time
+
 
 #for using locally
 ROOT_FOLDER_PATH = pathlib.Path().absolute().parent.as_posix()
@@ -607,3 +611,346 @@ def read_csv_from_s3(bucket, key):
     obj = client.get_object(Bucket=bucket, Key=key)
     df = pd.read_csv(obj['Body'])
     return df
+
+def get_land_type(latitude, longitude, resolution_diameter, API_key):
+    
+    bbox = get_bbox_of_point(latitude, longitude, resolution_diameter)
+    
+    land_types = []
+    
+    if is_airport(bbox, API_key):
+        land_types.append(LAND_TYPE.AIRPORT.value)
+    if is_water(bbox, API_key):
+        land_types.append(LAND_TYPE.WATER.value)
+    if is_building(bbox, API_key):
+        land_types.append(LAND_TYPE.BUILDING.value)
+    if is_railway_station(bbox, API_key):
+        land_types.append(LAND_TYPE.RAILWAYSTATION.value)
+    if is_green_space(bbox, API_key):
+        land_types.append(LAND_TYPE.GREENSPACE.value)
+    if is_urban_area(bbox, API_key):
+        land_types.append(LAND_TYPE.URBANAREA.value)
+
+    return ', '.join(land_types)
+    
+    
+def get_bbox_of_point(latitude, longitude, resolution_diameter):
+    """ Given a point get the bbox around that point at the given resolution
+
+    Args:
+        latitude (flaot): _description_
+        longitude (float): _description_
+        resolution_diameter (float): This corrosponds to the value used to generate the 2D point array 
+    
+    Returns:
+        bounding box (string): formatted like so bbox_bottom_left_lat,bbox_bottom_left_long,bbox_top_right_lat,bbox_top_right_long
+    """
+    
+    radius = resolution_diameter / 2
+    hypot = radius / math.cos(math.radians(45))
+    
+    bottom_left = inverse_haversine((latitude, longitude), hypot, Direction.SOUTHWEST)
+    top_right = inverse_haversine((latitude, longitude), hypot, Direction.NORTHEAST)
+    
+    return f'{bottom_left[0]:.8f}' + ',' + f'{bottom_left[1]:.8f}' + ',' + f'{top_right[0]:.8f}' + ',' + f'{top_right[1]:.8f}'
+
+def get_land_type(latitude, longitude, resolution_diameter, API_key):
+    
+    bbox = get_bbox_of_point(latitude, longitude, resolution_diameter)
+    
+    land_types = []
+    
+    if is_airport(bbox, API_key):
+        land_types.append(LAND_TYPE.AIRPORT.value)
+    if is_water(bbox, API_key):
+        land_types.append(LAND_TYPE.WATER.value)
+    if is_building(bbox, API_key):
+        land_types.append(LAND_TYPE.BUILDING.value)
+    if is_railway_station(bbox, API_key):
+        land_types.append(LAND_TYPE.RAILWAYSTATION.value)
+    if is_green_space(bbox, API_key):
+        land_types.append(LAND_TYPE.GREENSPACE.value)
+    if is_urban_area(bbox, API_key):
+        land_types.append(LAND_TYPE.URBANAREA.value)
+
+    return ', '.join(land_types)
+    
+    
+def get_bbox_of_point(latitude, longitude, resolution_diameter):
+    """ Given a point get the bbox around that point at the given resolution
+
+    Args:
+        latitude (flaot): _description_
+        longitude (float): _description_
+        resolution_diameter (float): This corrosponds to the value used to generate the 2D point array 
+    
+    Returns:
+        bounding box (string): formatted like so bbox_bottom_left_lat,bbox_bottom_left_long,bbox_top_right_lat,bbox_top_right_long
+    """
+    
+    radius = resolution_diameter / 2
+    hypot = radius / math.cos(math.radians(45))
+    
+    bottom_left = inverse_haversine((latitude, longitude), hypot, Direction.SOUTHWEST)
+    top_right = inverse_haversine((latitude, longitude), hypot, Direction.NORTHEAST)
+    
+    return f'{bottom_left[0]:.8f}' + ',' + f'{bottom_left[1]:.8f}' + ',' + f'{top_right[0]:.8f}' + ',' + f'{top_right[1]:.8f}'
+
+def get_feature_type_in_bbox_retry(bbox, feature_type, API_key):
+        
+    wfs_endpoint = ('https://api.os.uk/features/v1/wfs?')
+    params_wfs = {'service':'wfs',
+                  'key': API_key,
+                  'request':'GetFeature',
+                  'version':'2.0.0',
+                  'typeNames':feature_type,
+                  'outputFormat':'GEOJSON',
+                  'bbox': bbox,
+                 }
+
+    try:
+        retry_attempts = 2
+        successs = False
+        for i in range(retry_attempts):
+            if i > 0:
+                print('Retrying...')
+                
+            r = requests.get(wfs_endpoint, params=params_wfs)
+            r.raise_for_status()
+            
+            if r.status_code == 200:
+                payload = r.json()
+                successs = True
+                break
+            elif r.status_code == 429:
+                print('Error - 429 too many requests')
+                print(r.status_code)
+                # Wait > 1 minute
+                t0 = time()
+                while(time() - t0 < 70):
+                    continue
+            elif r.status_code != 200:
+                print(r.status_code)
+                return 'Error - ' + str(r.status_code)
+        
+        if not successs:
+            return 'Error - ' + str(r.status_code)
+        
+        return payload    
+
+    except requests.exceptions.RequestException as e:
+        print('Connection error - ')
+        raise Exception(e)
+
+def get_feature_type_in_bbox(bbox, feature_type, API_key):
+        
+    wfs_endpoint = ('https://api.os.uk/features/v1/wfs?')
+    params_wfs = {'service':'wfs',
+                  'key': API_key,
+                  'request':'GetFeature',
+                  'version':'2.0.0',
+                  'typeNames':feature_type,
+                  'outputFormat':'GEOJSON',
+                  'bbox': bbox,
+                 }
+
+    try:
+        r = requests.get(wfs_endpoint, params=params_wfs)
+        r.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(e)
+        raise Exception('Connection error - ' + e)
+    
+    if r.status_code == 200:
+        payload = r.json()
+    elif r.status_code == 429:
+        # Wait a minute and 5 seconds
+        t0 = time()
+        while(time() - t0 < 70):
+            continue
+        # try again
+        try:
+            r = requests.get(wfs_endpoint, params=params_wfs)
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(e)
+        
+        if r.status_code == 429:
+            print('Error - 429 too many requests')
+            print(r.status_code)
+            return 'Error - '+str(r.status_code)
+        elif r.status_code != 200:
+            print(r.status_code)
+            return 'Error - '+str(r.status_code)
+        else:
+            payload = r.json()
+            print('Second times a charm!')
+    else:
+        print(r.status_code)
+        return 'Error - '+str(r.status_code)
+    
+    return payload
+    
+def is_airport(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_Airports', API_key)
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_water(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_Surfacewater', API_key)
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_building(bbox, API_key):
+    result_local = get_feature_type_in_bbox(bbox, 'Zoomstack_LocalBuildings', API_key)
+    result_district = get_feature_type_in_bbox(bbox, 'Zoomstack_DistrictBuildings', API_key)
+    
+    if (isinstance(result_local, str)):
+        return False
+    elif (isinstance(result_district, str)):
+        return False
+    elif len(result_local['features']) > 0:
+        return True
+    elif len(result_district['features']) > 0:
+        return True
+    else:
+        return False
+    
+def is_green_space(bbox, API_key):
+    result_Greenspace = get_feature_type_in_bbox(bbox, 'Zoomstack_Greenspace', API_key)
+    result_NationalParks = get_feature_type_in_bbox(bbox, 'Zoomstack_NationalParks', API_key)
+    result_Woodland = get_feature_type_in_bbox(bbox, 'Zoomstack_Woodland', API_key)
+    
+    if (isinstance(result_Greenspace, str)):
+        return False
+    elif (isinstance(result_NationalParks, str)):
+        return False
+    elif (isinstance(result_Woodland, str)):
+        return False
+    elif len(result_Greenspace['features']) > 0:
+        return True
+    elif len(result_NationalParks['features']) > 0:
+        return True
+    elif len(result_Woodland['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_railway_station(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_RailwayStations', API_key)
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def is_urban_area(bbox, API_key):
+    result = get_feature_type_in_bbox(bbox, 'Zoomstack_UrbanAreas', API_key)
+    if (isinstance(result, str)):
+        return False
+    elif len(result['features']) > 0:
+        return True
+    else:
+        return False
+
+def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end_point_index, diameter_resolution, API_key):
+  
+    points_df = pd.read_csv(csv_path)
+    subset_points_df = points_df.loc[start_point_index:end_point_index]
+    
+    print('Number of points to be processed:', len(subset_points_df))
+    print('Start/End index (inclusive):', start_point_index, end_point_index)
+    print('Start point:', subset_points_df.iloc[0]['Latitude'], ',', points_df.iloc[0]['Longitude'])
+    print('End point:', points_df.iloc[-1]['Latitude'], ',', points_df.iloc[-1]['Longitude'])
+    
+    land_type_list = []
+
+    t0 = time()
+    for i in tqdm(range(len(subset_points_df))):
+        if i % 10 == 0 and i != 0:
+            print('Saving and waiting...')
+            # Create or append to a csv while waiting
+            df = pd.DataFrame(dtype='object', index=subset_points_df.index[:len(land_type_list)])
+            df['Land_Type'] = land_type_list
+            df.to_csv(save_path)
+            while(time() - t0 < 2):
+                continue
+            t0 = time() # reset the timer
+        
+        land_type = get_land_type(subset_points_df.iloc[i]['Latitude'],
+                                subset_points_df.iloc[i]['Longitude'],
+                                diameter_resolution,
+                                API_key)
+        land_type_list.append(land_type)
+    
+    print('Saving...')
+    df = pd.DataFrame(dtype='object', index=subset_points_df.index)
+    df['Land_Type'] = land_type_list
+    df.to_csv(save_path)
+    print('Done.')
+
+def preprocess_land_type_dataframes(dataframes_list, save_path, points_df_path):
+    stacked_df = pd.concat(dataframes_list, axis=0)
+
+    points_df = pd.read_csv(points_df_path, header=0, index_col=0)
+
+    if len(stacked_df) == len(points_df):
+        land_type_points_df = pd.concat([points_df, stacked_df], axis=1)
+    else:
+        print("Error!")
+        raise Exception('Error - Lengths do not match.')
+
+    land_types = ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']
+    for l in land_types:
+        land_type_points_df[l] = land_type_points_df['Land_Type'].str.contains(pat = l).fillna(False)
+    
+    land_type_points_df = land_type_points_df.drop(columns=['Land_Type'])
+
+    land_type_points_df.to_csv(save_path)
+
+def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end_point_index, diameter_resolution, API_key):
+    points_df = pd.read_csv(csv_path)
+    subset_points_df = points_df.loc[start_point_index:end_point_index]
+
+    print('Number of points to be processed:', len(subset_points_df))
+    print('Start/End index (inclusive):', start_point_index, end_point_index)
+    print('Start point:', subset_points_df.iloc[0]['Latitude'], ',', points_df.iloc[0]['Longitude'])
+    print('End point:', points_df.iloc[-1]['Latitude'], ',', points_df.iloc[-1]['Longitude'])
+
+
+    land_type_list = []
+    t0 = time()
+    for i in tqdm(range(len(subset_points_df))):
+      # Save every 10
+      if i % 10 == 0 and i != 0:
+        # Create or append to a csv while waiting
+        df = pd.DataFrame(dtype='object', index=subset_points_df.index[:len(land_type_list)])
+        df['Land_Type'] = land_type_list
+        df.to_csv(save_path)
+
+        # Wait 2 seconds to repeat
+        while(time() - t0 < 2):
+          continue
+        t0 = time() # reset the timer
+
+      land_type = get_land_type(subset_points_df.iloc[i]['Latitude'],
+                                subset_points_df.iloc[i]['Longitude'],
+                                diameter_resolution,
+                                API_key)
+      land_type_list.append(land_type)
+
+    print('Saving...')
+    df = pd.DataFrame(dtype='object', index=subset_points_df.index)
+    df['Land_Type'] = land_type_list
+    df.to_csv(save_path)
+    print('Done.')
+    
