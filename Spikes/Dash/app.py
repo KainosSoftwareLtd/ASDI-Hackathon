@@ -11,9 +11,7 @@ import boto3
 app = Dash(__name__)
 
 #import data CSV locally
-#df = pd.read_csv('./data/final_df.csv')
-#df = pd.read_csv('./data/land_type_025.csv')
-df = pd.read_csv('./data/test_final_df_with_greenspace_score.csv')
+df = pd.read_csv('./data/final_df.csv')
 
 #import data CSV from s3 bucket
 # client = boto3.client('s3')
@@ -35,7 +33,7 @@ app.layout = html.Div(children=[
         html.Label('Select Overlay'),
         dcc.Dropdown(id='my_dropdown',
             options=[
-                        {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score'},
+                        {'label': 'Greenspace (Viability) Score', 'value': 'Greenspace_score'},
                         {'label': 'Population Density', 'value': 'Pop_density', 'disabled': True},
                         {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score', 'disabled': True},
                         {'label': 'AQ Carbon Monoxide', 'value': 'Value_co', 'disabled': True},
