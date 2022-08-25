@@ -447,6 +447,7 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
     popd_pct = 50/100
     
     #Air Quality Score
+    #aqs_pct derived from remainder of popd_weight * popd_pct so that AQ becomes focused more in greenspace score when population density less of a concern for greenspaces
     aqs_pct = (1 - (popd_weight * popd_pct))
     aqs_weight = 1
     
@@ -464,7 +465,7 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
         penalty_reward_row_sum += 1
     ###############################
     if green_space == 1:
-        penalty_reward_row_sum += 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+        penalty_reward_row_sum += 0.75   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
     else:
         penalty_reward_row_sum += 1
     ###############################
@@ -474,7 +475,7 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
         penalty_reward_row_sum += 1
     ###############################
     if building == 1:
-        penalty_reward_row_sum += 0.25   #assuming building refers to more key buildings rather than less key urban area buildings, the inconvenience of replacing these with greenspaces is so high, more penalty should be attributed
+        penalty_reward_row_sum += 1.25
     else:
         penalty_reward_row_sum += 1
     ###############################

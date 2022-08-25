@@ -7,11 +7,12 @@ import pandas as pd
 from dash.dependencies import Input, Output
 import plotly.figure_factory as ff
 import boto3
+import numpy as np
 
 app = Dash(__name__)
 
 #import data CSV locally
-df = pd.read_csv('./data/final_df.csv')
+df = pd.read_csv('./data/final_df.csv', engine = 'c')
 
 #import data CSV from s3 bucket
 # client = boto3.client('s3')
@@ -34,13 +35,13 @@ app.layout = html.Div(children=[
         dcc.Dropdown(id='my_dropdown',
             options=[
                         {'label': 'Greenspace (Viability) Score', 'value': 'Greenspace_score'},
-                        {'label': 'Population Density', 'value': 'Pop_density', 'disabled': True},
-                        {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score', 'disabled': True},
-                        {'label': 'AQ Carbon Monoxide', 'value': 'Value_co', 'disabled': True},
-                        {'label': 'AQ Nitrogen Dioxide', 'value': 'Value_no2', 'disabled': True},
-                        {'label': 'AQ Ozone', 'value': 'Value_o3', 'disabled': True},
-                        {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2', 'disabled': True},
-                        {'label': 'AQ Aerosol Index', 'value': 'Value_ai', 'disabled': True},
+                        {'label': 'Population Density', 'value': 'Pop_density'},
+                        {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score'},
+                        {'label': 'AQ Carbon Monoxide', 'value': 'Value_co'},
+                        {'label': 'AQ Nitrogen Dioxide', 'value': 'Value_no2'},
+                        {'label': 'AQ Ozone', 'value': 'Value_o3'},
+                        {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2'},
+                        {'label': 'AQ Aerosol Index', 'value': 'Value_ai'},
                         {'label': 'Current Greenspaces', 'value': 'Green_Space'},
                         {'label': 'Urban Areas', 'value': 'Urban_Area'},
                         {'label': 'Buildings', 'value': 'Building'},
@@ -80,23 +81,23 @@ app.layout = html.Div(children=[
 def build_graph(column_chosen):
     # density
     #https://plotly.com/python/builtin-colorscales/
-    # fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.5,
-    #                     center=dict(lat=51.50009, lon=0.1268072), zoom=10.1,
-    #                     #'open-street-map', 'carto-positron", 'carto-darkmatter', 'stamen-terrain', 'stamen-toner', 'stamen-watercolor' 
-    #                     mapbox_style="carto-positron",
-    #                     color_continuous_scale = 'Turbo')   #Thermal
+    fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.5,
+                        center=dict(lat=51.50009, lon=0.1268072), zoom=10.1,
+                        #'open-street-map', 'carto-positron", 'carto-darkmatter', 'stamen-terrain', 'stamen-toner', 'stamen-watercolor' 
+                        mapbox_style="carto-positron",
+                        color_continuous_scale = 'Turbo')   #Thermal
     
     # scatter
     # fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', opacity = 0.5,
     #                         color = column_chosen, zoom=9.5, mapbox_style="carto-positron")
     
     # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
-    fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
-                                  opacity=0.3, center=dict(lat=51.50009, lon=0.1268072),
-                                  mapbox_style="carto-positron", zoom=10.1, color_continuous_scale = 'Turbo',
-                                  labels={"color": column_chosen})
-                                  #, min_count=1)
-    fig.update_traces(marker_line_width=0)
+    # fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
+    #                               opacity=0.3, center=dict(lat=51.50009, lon=0.1268072),
+    #                               mapbox_style="carto-positron", zoom=10.1, color_continuous_scale = 'Turbo',
+    #                               labels={"color": column_chosen}, agg_func = np.mean)
+    #                               #, min_count=1)
+    # fig.update_traces(marker_line_width=0)
     
     fig.update_layout(
         autosize=True,
