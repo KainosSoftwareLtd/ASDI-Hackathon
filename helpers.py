@@ -434,12 +434,12 @@ def calculate_popd_weight(df, resolution):
     sum_df_popd = df['Pop_density'].sum()
     sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * resolution   #sum of greenspace multiplied by resolution
     gs_per_capita = sum_df_greenspace_m2 / sum_df_popd
-    #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE lower weighting
+    #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE with lower weighting
     #weight <1 will decrease contribution of pop density to greenspace score
-    #if current greenspace per capita is WORSE than WHO standards, it is MORE likely greenspace is required so REWARD higher weighting
+    #if current greenspace per capita is WORSE than WHO standards, it is MORE likely greenspace is required so REWARD with higher weighting
     #weight >1 will increase contribution of pop density to greenspace score
     #weight =1 means weighting is essentially cancelled out
-    popd_weight = gs_per_capita / standard_gs_per_pop_m2
+    popd_weight = standard_gs_per_pop_m2 / gs_per_capita
     return popd_weight
 
 def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, popd_weight):
