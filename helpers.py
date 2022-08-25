@@ -367,7 +367,7 @@ def parallelise(df, func):
     df = pd.concat(results)
     return df
 
-def apply_aq_functions(df):
+def apply_aq_metric_functions(df):
     #molar mass constants
     co_molar_mass = 28.01
     no2_molar_mass = 46.0055
@@ -389,22 +389,30 @@ def apply_aq_functions(df):
     #print('ai_function complete')
     return df
 
-def normalise(df):
+def normalise_aq_metric_columns(df):
     norm_cols = ['Value_co', 'Value_no2', 'Value_o3', 'Value_so2', 'Value_ai']
     #normalise each aq metric value set between 1 and 0 where 0 = 0% and 1 = 20%
     for i in df[norm_cols]:   #normalise aq value columns
         df['norm_' + i]=(df[i]-df[i].min())/(df[i].max()-df[i].min())
     return df
 
-def aqs_function(aq1, aq2, aq3, aq4, aq5):
+def aq_score_function(aq1, aq2, aq3, aq4, aq5):
     #smaller value = better air quality
     aqs = (aq1 * (20/100)) + (aq2 * (20/100)) + (aq3 * (20/100)) + (aq4 * (20/100)) + (aq5 * (20/100))
     return aqs
 
 def apply_aqs_function(df):
+    #create normalised versions of aq metric columns in order to apply aq_score_function
+    df = normalise_aq_metric_columns(df)
+    
     #assumption: each metric is worth 20% of AQS, 100 / 5 metrics
+    #5 air quality metrics. Values for each are normalised between 0 and 1 where each of the 5 metrics account for 20% (5 * 20% = 100%) of an air quality score. 
+    #A value of 0 would mean the air quality value contributes nothing to the air quality score. 
+    #A value of 1 means it contributes the full 20%. This is the MVP method for calculating an air quality score given blockers associated with the dataset, 
+    #i.e. no access to near-surface air quality metrics, only a total vertical column. 
+    # A lower air quality score reflects better air quality.
     #apply calculate_aqi function to each row of the 5 aq columns
-    df['AQ_score'] = df.apply(lambda row : aqs_function(row['norm_Value_co'], 
+    df['AQ_score'] = df.apply(lambda row : aq_score_function(row['norm_Value_co'], 
                                                             row['norm_Value_no2'], 
                                                             row['norm_Value_o3'], 
                                                             row['norm_Value_so2'], 
@@ -420,13 +428,11 @@ def apply_popd_function(df):
     df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
     return df
 
-def greenspace_score_function(df, aqs, pop_density, airport, water, building, green_space, railway_station, urban_area):
-    #Population Density
-    popd_pct = 50/100
+def calculate_popd_weight(df, resolution):
     #50m2 per capita according to WHO standards or 100m2 (our resolution) per 2 people
     standard_gs_per_pop_m2 = 50
     sum_df_popd = df['Pop_density'].sum()
-    sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * 100   #sum of greenspace multiplied by resolution
+    sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * resolution   #sum of greenspace multiplied by resolution
     gs_per_capita = sum_df_greenspace_m2 / sum_df_popd
     #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE lower weighting
     #weight <1 will decrease contribution of pop density to greenspace score
@@ -434,97 +440,125 @@ def greenspace_score_function(df, aqs, pop_density, airport, water, building, gr
     #weight >1 will increase contribution of pop density to greenspace score
     #weight =1 means weighting is essentially cancelled out
     popd_weight = gs_per_capita / standard_gs_per_pop_m2
+    return popd_weight
+
+def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, popd_weight):
+    #Population Density
+    popd_pct = 50/100
+    
+    #Air Quality Score
+    aqs_pct = (1 - (popd_weight * popd_pct))
+    aqs_weight = 1
     
     #Land Type
     penalty_reward_row_sum = 0
-    
+    ###############################
     if airport == 1:
         penalty_reward_row_sum += 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
     else:
         penalty_reward_row_sum += 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
-        
+    ###############################
     if water == 1:
         penalty_reward_row_sum += 0
     else:
         penalty_reward_row_sum += 1
-        
+    ###############################
     if green_space == 1:
         penalty_reward_row_sum += 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
     else:
         penalty_reward_row_sum += 1
-        
+    ###############################
     if railway_station == 1:
         penalty_reward_row_sum += 0
     else:
         penalty_reward_row_sum += 1
-        
+    ###############################
     if building == 1:
         penalty_reward_row_sum += 0.25   #assuming building refers to more key buildings rather than less key urban area buildings, the inconvenience of replacing these with greenspaces is so high, more penalty should be attributed
     else:
         penalty_reward_row_sum += 1
-        
+    ###############################
     if urban_area == 1:
         penalty_reward_row_sum += 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
     else:
         penalty_reward_row_sum += 1
-        
+    ###############################
     avg_penalty_reward = penalty_reward_row_sum / 6
         
-    #Air Quality Score
-    aqs_pct = 100 - sum(popd_weight * popd_pct)
-    aqs_weight = 1
-        
     Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * avg_penalty_reward
-    return Greenspace_score
+    return [Greenspace_score, avg_penalty_reward]
     
-def apply_greenspace_score_function(df):
-    df['Greenspace_score'] = df.apply(lambda row : greenspace_score_function(df, row['AQ_score'], 
+def apply_greenspace_score_function(df, resolution):
+    popd_weight = calculate_popd_weight(df, resolution)
+    df[['Greenspace_score', 'avg_penalty_reward']] = df.apply(lambda row : greenspace_score_function(row['AQ_score'], 
                                                                                 row['Pop_density'],
                                                                                 row['Airport'],
                                                                                 row['Water'],
                                                                                 row['Building'],
                                                                                 row['Green_Space'],
                                                                                 row['Railway_Station'],
-                                                                                row['Urban_Area']), axis=1)
+                                                                                row['Urban_Area'], popd_weight), axis=1, result_type = 'expand')
+    print('popd_weight = ', popd_weight)
+    return df
 
-def fill_points_df(bucket = '', key = ''):
+def fill_points_land_type_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/processed_land_type_025.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/land_type_025.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
     
+    #preprocess land type columns, convert to binary from boolean
+    for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
+        df[i] = df[i].astype(int)
+    
     start = time.time()
-    df = parallelise(df, apply_aq_functions)
+    df = parallelise(df, apply_aq_metric_functions)
     end = time.time()
     time_taken1 = round(end - start, 2)
-    print('apply_aq_functions complete')
+    print('apply_aq_metric_functions complete')                      
     print('Time taken:', time_taken1)
     
     start = time.time()
-    df = parallelise(df, apply_popd_function)
-    df = normalise(df)
-    print('normalisation of aq values complete')
     df = apply_aqs_function(df)
     print('apply_aqs_function complete')
     end = time.time()
     time_taken2 = round(end - start, 2)
-    print('apply_popd_function complete')
     print('Time taken:', time_taken2)
     
     start = time.time()
-    df = apply_greenspace_score_function(df)
+    df = parallelise(df, apply_popd_function)
+    print('apply_popd_function complete')
     end = time.time()
     time_taken3 = round(end - start, 2)
-    print('apply_greenspace_score_function complete')
     print('Time taken:', time_taken3)
     
     total_time_taken = time_taken1 + time_taken2 + time_taken3
     print('TOTAL time taken:', total_time_taken)
+    
+    return df
+
+def fill_penultimate_df(bucket = '', key = ''):
+    
+    if bucket == '':
+        #read locally
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/penultimate_df.csv', index_col = 0)
+    else:
+        #read from s3 bucket
+        client = boto3.client('s3')
+        obj = client.get_object(Bucket=bucket, Key=key)
+        df = pd.read_csv(obj['Body'])
+        
+    start = time.time()
+    df = apply_greenspace_score_function(df, resolution = 250)
+    end = time.time()
+    time_taken4 = round(end - start, 2)
+    print('apply_greenspace_score_function complete')
+    print('Time taken:', time_taken4)
     
     return df
             

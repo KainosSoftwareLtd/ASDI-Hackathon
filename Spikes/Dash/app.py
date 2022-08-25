@@ -12,7 +12,8 @@ app = Dash(__name__)
 
 #import data CSV locally
 #df = pd.read_csv('./data/final_df.csv')
-df = pd.read_csv('./data/land_type_025.csv')
+#df = pd.read_csv('./data/land_type_025.csv')
+df = pd.read_csv('./data/test_final_df_with_greenspace_score.csv')
 
 #import data CSV from s3 bucket
 # client = boto3.client('s3')
@@ -34,7 +35,7 @@ app.layout = html.Div(children=[
         html.Label('Select Overlay'),
         dcc.Dropdown(id='my_dropdown',
             options=[
-                        {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score', 'disabled': True},
+                        {'label': 'Greenspace Viability Score', 'value': 'Greenspace_score'},
                         {'label': 'Population Density', 'value': 'Pop_density', 'disabled': True},
                         {'label': 'Air Quality (AQ) Metric', 'value': 'AQ_score', 'disabled': True},
                         {'label': 'AQ Carbon Monoxide', 'value': 'Value_co', 'disabled': True},
@@ -43,11 +44,15 @@ app.layout = html.Div(children=[
                         {'label': 'AQ Sulphur Dioxide', 'value': 'Value_so2', 'disabled': True},
                         {'label': 'AQ Aerosol Index', 'value': 'Value_ai', 'disabled': True},
                         {'label': 'Current Greenspaces', 'value': 'Green_Space'},
-                        {'label': 'Current Buildings', 'value': 'Building'},
-                        {'label': 'Current Urban Areas', 'value': 'Urban_Area'}
+                        {'label': 'Urban Areas', 'value': 'Urban_Area'},
+                        {'label': 'Buildings', 'value': 'Building'},
+                        {'label': 'Airports', 'value': 'Airport'},
+                        {'label': 'Water', 'value': 'Water'},
+                        {'label': 'Railway Stations', 'value': 'Railway_Station'},
+                        {'label': 'Land Type Penalty (<1) or Reward (>1)', 'value': 'avg_penalty_reward'}
             ],
             optionHeight=25,                    #height/space between dropdown options
-            value='AQ_score',         #dropdown value selected automatically when page loads
+            value='Greenspace_score',         #dropdown value selected automatically when page loads
             disabled=False,                     #disable dropdown value selection
             multi=False,                        #allow multiple dropdown values to be selected
             searchable=True,                    #allow user-searching of dropdown values
@@ -88,7 +93,7 @@ def build_graph(column_chosen):
     #                         color = column_chosen, zoom=9.5, mapbox_style="carto-positron")
     
     # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
-    fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=200, 
+    fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
                                   opacity=0.3, center=dict(lat=51.50009, lon=0.1268072),
                                   mapbox_style="carto-positron", zoom=10.1, color_continuous_scale = 'Turbo',
                                   labels={"color": column_chosen})
