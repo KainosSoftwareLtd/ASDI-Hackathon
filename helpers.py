@@ -464,43 +464,86 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
     aqs_pct = (1 - (popd_weight * popd_pct))
     aqs_weight = 1
     
+    # #Land Type
+    # penalty_reward_row_sum = 0
+    # ###############################
+    # if airport == 1:
+    #     penalty_reward_row_sum += 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
+    # else:
+    #     penalty_reward_row_sum += 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
+    # ###############################
+    # if water == 1:
+    #     penalty_reward_row_sum += 0
+    # else:
+    #     penalty_reward_row_sum += 1
+    # ###############################
+    # if green_space == 1:
+    #     penalty_reward_row_sum += 0.75   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+    # else:
+    #     penalty_reward_row_sum += 1
+    # ###############################
+    # if railway_station == 1:
+    #     penalty_reward_row_sum += 0
+    # else:
+    #     penalty_reward_row_sum += 1
+    # ###############################
+    # # if building == 1:
+    # #     penalty_reward_row_sum += 1.25
+    # # else:
+    # #     penalty_reward_row_sum += 1
+    # ###############################
+    # if urban_area == 1 and building == 1:
+    #     penalty_reward_row_sum += 1.5  #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
+    # elif urban_area == 1:
+    #     penalty_reward_row_sum += 1.75
+    # elif building == 1:
+    #     penalty_reward_row_sum += 0.75
+    # else:
+    #     penalty_reward_row_sum += 0.75
+    # ###############################
+    
     #Land Type
-    penalty_reward_row_sum = 0
     ###############################
     if airport == 1:
-        penalty_reward_row_sum += 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
+        airport_weight = 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
     else:
-        penalty_reward_row_sum += 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
+        airport_weight = 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
     ###############################
     if water == 1:
-        penalty_reward_row_sum += 0
+        water_weight = 0
     else:
-        penalty_reward_row_sum += 1
+        water_weight = 1
     ###############################
     if green_space == 1:
-        penalty_reward_row_sum += 0.75   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+        green_space_weight = 0.75   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
     else:
-        penalty_reward_row_sum += 1
+        green_space_weight = 1
     ###############################
     if railway_station == 1:
-        penalty_reward_row_sum += 0
+        railway_station_weight = 0
     else:
-        penalty_reward_row_sum += 1
+        railway_station_weight = 1
     ###############################
     if building == 1:
-        penalty_reward_row_sum += 1.25
+        building_weight = 1.25
     else:
-        penalty_reward_row_sum += 1
+        building_weight = 1
     ###############################
     if urban_area == 1:
-        penalty_reward_row_sum += 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
+        urban_area_weight = 1.5  #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
     else:
-        penalty_reward_row_sum += 1
+        urban_area_weight = 1
     ###############################
-    avg_penalty_reward = penalty_reward_row_sum / 6
+    
+    # avg_penalty_reward = penalty_reward_row_sum / 6
+    # penalty_reward = avg_penalty_reward
+    
+    penalty_reward = (airport_weight * 0.1) + (water_weight * 0.1) + (green_space_weight * 0.2) + (railway_station_weight * 0.1) + (building_weight * 0.25) + (urban_area_weight * 0.25)
+    
+
         
-    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * avg_penalty_reward
-    return [Greenspace_score, avg_penalty_reward]
+    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * penalty_reward
+    return [Greenspace_score, penalty_reward]
     
 def apply_greenspace_score_function(df, resolution):
     popd_weight = calculate_popd_weight(df, resolution)
