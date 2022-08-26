@@ -8,7 +8,7 @@ from tqdm import tqdm
 import boto3
 from io import StringIO # python3; python2: BytesIO 
 import pickle
-import time
+from time import time
 import math
 #from multiprocessing import Pool
 #from multiprocessing import cpu_count
@@ -18,7 +18,6 @@ from multiprocess import Pool
 from multiprocess import cpu_count
 from Enums.land_type import LAND_TYPE
 import requests
-from time import time
 
 
 #for using locally
@@ -362,6 +361,16 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     return point_set_df
 
 def parallelise(df, func):
+    #https://docs.python.org/3/library/multiprocessing.html
+    #from multiprocessing import set_start_method
+    #for Jupyter Notebook implementations:
+    from multiprocess import set_start_method
+    #set_start_method("spawn")
+    #'fork' crashes process, a known issue with MacOS
+    #gitignore of local csvs maybe causing problem with 'fork' start method
+    set_start_method("fork")
+    #set_start_method("forkserver")
+    
     n_cores = cpu_count()
     df_splits = np.array_split(df, n_cores)
     pool = Pool(n_cores)
@@ -381,16 +390,16 @@ def apply_aq_metric_functions(df):
     #apply aq functions to each row (using latitude and longitude columns) and multiply by associated molar mass to give g/m2
     #axis = 1, apply function to each row
     
-    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude']) * co_molar_mass, axis=1)
-    #print('co_function complete')
-    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude']) * no2_molar_mass, axis=1)
-    #print('no2_function complete')
-    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude']) * o3_molar_mass, axis=1)
-    #print('o3_function complete')
-    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude']) * so2_molar_mass, axis=1)
-    #print('so2_function complete')
-    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude']), axis=1)
-    #print('ai_function complete')
+    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
+    print('co_function complete')
+    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
+    print('no2_function complete')
+    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
+    print('o3_function complete')
+    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
+    print('so2_function complete')
+    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
+    print('ai_function complete')
     return df
 
 def normalise_aq_metric_columns(df):
@@ -429,7 +438,7 @@ def apply_aqs_function(df):
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
-    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
+    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/popdensity_model.pkl'), axis=1)
     return df
 
 def calculate_popd_weight(df, resolution):
@@ -510,7 +519,7 @@ def fill_points_land_type_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/land_type_025.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + 'land_type_025.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
@@ -521,24 +530,24 @@ def fill_points_land_type_df(bucket = '', key = ''):
     for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
         df[i] = df[i].astype(int)
     
-    start = time.time()
+    start = time()
     df = parallelise(df, apply_aq_metric_functions)
-    end = time.time()
+    end = time()
     time_taken1 = round(end - start, 2)
     print('apply_aq_metric_functions complete')                      
     print('Time taken:', time_taken1)
     
-    start = time.time()
+    start = time()
     df = apply_aqs_function(df)
     print('apply_aqs_function complete')
-    end = time.time()
+    end = time()
     time_taken2 = round(end - start, 2)
     print('Time taken:', time_taken2)
     
-    start = time.time()
+    start = time()
     df = parallelise(df, apply_popd_function)
     print('apply_popd_function complete')
-    end = time.time()
+    end = time()
     time_taken3 = round(end - start, 2)
     print('Time taken:', time_taken3)
     
@@ -551,16 +560,16 @@ def fill_penultimate_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/penultimate_df.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + 'penultimate_df.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
         
-    start = time.time()
+    start = time()
     df = apply_greenspace_score_function(df, resolution = 250)
-    end = time.time()
+    end = time()
     time_taken4 = round(end - start, 2)
     print('apply_greenspace_score_function complete')
     print('Time taken:', time_taken4)
@@ -633,7 +642,6 @@ def get_land_type(latitude, longitude, resolution_diameter, API_key):
 
     return ', '.join(land_types)
     
-    
 def get_bbox_of_point(latitude, longitude, resolution_diameter):
     """ Given a point get the bbox around that point at the given resolution
 
@@ -674,7 +682,6 @@ def get_land_type(latitude, longitude, resolution_diameter, API_key):
         land_types.append(LAND_TYPE.URBANAREA.value)
 
     return ', '.join(land_types)
-    
     
 def get_bbox_of_point(latitude, longitude, resolution_diameter):
     """ Given a point get the bbox around that point at the given resolution
@@ -953,4 +960,3 @@ def get_land_types_for_points_in_csv(csv_path, save_path, start_point_index, end
     df['Land_Type'] = land_type_list
     df.to_csv(save_path)
     print('Done.')
-    

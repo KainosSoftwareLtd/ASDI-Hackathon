@@ -2,13 +2,10 @@ import pickle
 import pandas as pd
 import numpy as np
 import math
-import pathlib
 from haversine import *
-from tqdm import tqdm
 import boto3
 from io import StringIO # python3; python2: BytesIO 
 import pickle
-import time
 import math
 #from multiprocessing import Pool
 #from multiprocessing import cpu_count
@@ -16,6 +13,12 @@ import math
 #multiprocess works better within Jupyter Notebooks than multiprocessing package
 from multiprocess import Pool
 from multiprocess import cpu_count
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import train_test_split
 
 def create_ai_pickle():
     client = boto3.client('s3')
@@ -28,13 +31,6 @@ def create_ai_pickle():
 
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
-
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.model_selection import cross_val_score
-    from sklearn.model_selection import LeaveOneOut
-    from sklearn.model_selection import train_test_split
 
     df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 
@@ -77,13 +73,6 @@ def create_co_pickle():
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
 
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.model_selection import cross_val_score
-    from sklearn.model_selection import LeaveOneOut
-    from sklearn.model_selection import train_test_split
-
     df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 
     X_train = df_train[['latitude', 'longitude']]
@@ -125,13 +114,6 @@ def create_no2_pickle():
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
 
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.model_selection import cross_val_score
-    from sklearn.model_selection import LeaveOneOut
-    from sklearn.model_selection import train_test_split
-
     df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 
     X_train = df_train[['latitude', 'longitude']]
@@ -172,13 +154,6 @@ def create_o3_pickle():
 
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
-
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.model_selection import cross_val_score
-    from sklearn.model_selection import LeaveOneOut
-    from sklearn.model_selection import train_test_split
 
     df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 
@@ -224,18 +199,10 @@ def create_popdensity_pickle():
     df_filter = df_filter[(df_filter['longitude'] >= -0.625211) & (df_filter['longitude'] <= 0.328289)]
     df = df_filter
 
-    import sys
-    import pathlib
-    ROOT = pathlib.Path().absolute().parent.as_posix()
-    if ROOT not in sys.path:
-        sys.path.append(ROOT)
-
     df['population'] = df['population'].astype(np.float32)
 
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
-
-    from sklearn.neighbors import KNeighborsRegressor
 
     #use all of data in train
     X_train = df[['latitude', 'longitude']]
@@ -260,13 +227,6 @@ def create_so2_pickle():
 
     df['latitude'] = df['latitude'].apply(math.radians)
     df['longitude'] = df['longitude'].apply(math.radians)
-
-    from sklearn.neighbors import KNeighborsRegressor
-    from sklearn.model_selection import train_test_split
-    from sklearn.model_selection import GridSearchCV
-    from sklearn.model_selection import cross_val_score
-    from sklearn.model_selection import LeaveOneOut
-    from sklearn.model_selection import train_test_split
 
     df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 
@@ -335,6 +295,8 @@ def upload_df_to_s3(bucket, df, key):
         print('Failed upload')
         
 def parallelise(df, func):
+    from multiprocess import set_start_method
+    set_start_method("spawn")
     n_cores = cpu_count()
     df_splits = np.array_split(df, n_cores)
     pool = Pool(n_cores)
@@ -354,15 +316,15 @@ def apply_aq_metric_functions(df):
     #apply aq functions to each row (using latitude and longitude columns) and multiply by associated molar mass to give g/m2
     #axis = 1, apply function to each row
     
-    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude']) * co_molar_mass, axis=1)
+    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
     #print('co_function complete')
-    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude']) * no2_molar_mass, axis=1)
+    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
     #print('no2_function complete')
-    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude']) * o3_molar_mass, axis=1)
+    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
     #print('o3_function complete')
-    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude']) * so2_molar_mass, axis=1)
+    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
     #print('so2_function complete')
-    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude']), axis=1)
+    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
     #print('ai_function complete')
     return df
 
@@ -402,7 +364,7 @@ def apply_aqs_function(df):
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
-    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
+    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/popdensity_model.pkl'), axis=1)
     return df
 
 def calculate_popd_weight(df, resolution):
@@ -483,7 +445,7 @@ def fill_points_land_type_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/land_type_025.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + 'land_type_025.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
@@ -494,29 +456,11 @@ def fill_points_land_type_df(bucket = '', key = ''):
     for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
         df[i] = df[i].astype(int)
     
-    start = time.time()
     df = parallelise(df, apply_aq_metric_functions)
-    end = time.time()
-    time_taken1 = round(end - start, 2)
-    print('apply_aq_metric_functions complete')                      
-    print('Time taken:', time_taken1)
     
-    start = time.time()
     df = apply_aqs_function(df)
-    print('apply_aqs_function complete')
-    end = time.time()
-    time_taken2 = round(end - start, 2)
-    print('Time taken:', time_taken2)
-    
-    start = time.time()
+
     df = parallelise(df, apply_popd_function)
-    print('apply_popd_function complete')
-    end = time.time()
-    time_taken3 = round(end - start, 2)
-    print('Time taken:', time_taken3)
-    
-    total_time_taken = time_taken1 + time_taken2 + time_taken3
-    print('TOTAL time taken:', total_time_taken)
     
     return df
 
@@ -524,20 +468,15 @@ def fill_penultimate_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + '/Spikes/Dash/data/penultimate_df.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + 'penultimate_df.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
-        
-    start = time.time()
+          
     df = apply_greenspace_score_function(df, resolution = 250)
-    end = time.time()
-    time_taken4 = round(end - start, 2)
-    print('apply_greenspace_score_function complete')
-    print('Time taken:', time_taken4)
-    
+
     return df
 
 def co_function(lat, lon, bucket = '', key = ''):
@@ -654,17 +593,23 @@ def popdensity_function(lat, lon, bucket = '', key = ''):
     preds = popdensity_model.predict(input)
     return preds[0]
 
-create_ai_pickle()
-create_co_pickle()
-create_no2_pickle()
-create_o3_pickle()
-create_popdensity_pickle()
-create_so2_pickle()
+def create_final_df():
+    penultimate_df = fill_points_land_type_df('asdi-hackathon', 'land_type_025.csv')
+        
+    upload_df_to_s3(bucket = 'asdi-hackathon', df = penultimate_df, key = 'final-data/penultimate_df.csv')
 
-penultimate_df = fill_points_land_type_df('asdi-hackathon', 'land_type_025.csv')
+    final_df = fill_penultimate_df('asdi-hackathon', 'final-data/penultimate_df.csv')
+
+    upload_df_to_s3(bucket = 'asdi-hackathon', df = final_df, key = 'final-data/final_df.csv')
+
+    return final_df
+
+if __name__ == "__main__":
+    create_ai_pickle()
+    create_co_pickle()
+    create_no2_pickle()
+    create_o3_pickle()
+    create_popdensity_pickle()
+    create_so2_pickle()
     
-upload_df_to_s3(bucket = 'asdi-hackathon', df = penultimate_df, key = 'final-data/penultimate_df.csv')
-
-final_df = fill_penultimate_df('asdi-hackathon', 'final-data/penultimate_df.csv')
-
-upload_df_to_s3(bucket = 'asdi-hackathon', df = final_df, key = 'final-data/final_df.csv')
+    create_final_df()

@@ -17,3 +17,4 @@ shapely==1.8.4
 zarr==2.12.0
 tqdm==4.64.0
 python-dotenv==0.20.0
+sagemaker==2.106.0

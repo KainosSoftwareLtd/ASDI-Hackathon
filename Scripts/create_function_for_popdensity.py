@@ -20,12 +20,6 @@ df_filter = df[(df['latitude'] >= 51.239405) & (df['latitude'] <= 51.737184)]
 df_filter = df_filter[(df_filter['longitude'] >= -0.625211) & (df_filter['longitude'] <= 0.328289)]
 df = df_filter
 
-import sys
-import pathlib
-ROOT = pathlib.Path().absolute().parent.as_posix()
-if ROOT not in sys.path:
-    sys.path.append(ROOT)
-
 df['population'] = df['population'].astype(np.float32)
 
 import math
