@@ -445,7 +445,7 @@ def fill_points_land_type_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + 'land_type_025.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/land_type_025.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')
@@ -468,7 +468,7 @@ def fill_penultimate_df(bucket = '', key = ''):
     
     if bucket == '':
         #read locally
-        df = pd.read_csv(ROOT_FOLDER_PATH + 'penultimate_df.csv', index_col = 0)
+        df = pd.read_csv(ROOT_FOLDER_PATH + '/penultimate_df.csv', index_col = 0)
     else:
         #read from s3 bucket
         client = boto3.client('s3')

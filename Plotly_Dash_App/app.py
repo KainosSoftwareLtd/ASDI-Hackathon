@@ -9,16 +9,24 @@ import plotly.figure_factory as ff
 import boto3
 import numpy as np
 
+import sys
+import pathlib
+import pandas as pd
+
+ROOT = pathlib.Path().absolute().parent.as_posix()
+if ROOT not in sys.path:
+    sys.path.append(ROOT)
+
+
 app = Dash(__name__)
 
 #import data CSV locally
-df = pd.read_csv('./data/final_df.csv', engine = 'c')
+df = pd.read_csv(ROOT + '/final_df.csv', engine = 'c')
 
 #import data CSV from s3 bucket
-# client = boto3.client('s3')
-# obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
-# df = pd.read_csv(obj['Body'])
-
+#client = boto3.client('s3')
+#obj = client.get_object(Bucket='asdi-hackathon', Key='final-data/final_df.csv')
+#df = pd.read_csv(obj['Body'])
 
 app.layout = html.Div(children=[
     html.H2(children='Green Space Suggestion Dashboard'),
