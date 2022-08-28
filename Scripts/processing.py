@@ -7,6 +7,7 @@ import boto3
 from io import StringIO # python3; python2: BytesIO 
 import pickle
 import math
+from time import time
 #from multiprocessing import Pool
 #from multiprocessing import cpu_count
 #for Jupyter Notebooks parallel processing
@@ -19,6 +20,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import LeaveOneOut
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import BallTree
 
 def create_ai_pickle():
     client = boto3.client('s3')
@@ -299,10 +301,10 @@ def parallelise(df, func):
     #from multiprocessing import set_start_method
     #for Jupyter Notebook implementations:
     from multiprocess import set_start_method
-    set_start_method("spawn")
+    #set_start_method("spawn")
     #'fork' crashes process, a known issue with MacOS
     #gitignore of local csvs maybe causing problem with 'fork' start method
-    #set_start_method("fork")
+    set_start_method("fork")
     #set_start_method("forkserver")
     
     n_cores = cpu_count()
@@ -325,10 +327,15 @@ def apply_aq_metric_functions(df):
     #axis = 1, apply function to each row
     
     df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
+    print('co_function complete')
     df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
+    print('no2_function complete')
     df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
+    print('o3_function complete')
     df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
+    print('so2_function complete')
     df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
+    print('ai_function complete')
     return df
 
 def normalise_aq_metric_columns(df):
@@ -499,13 +506,40 @@ def fill_points_land_type_df(bucket = '', key = ''):
     for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
         df[i] = df[i].astype(int)
     
+    #calculate distance to nearest greenspaces
+    start = time()
     df = dist_nearest_greenspace_function(df)
-
-    df = parallelise(df, apply_aq_metric_functions)
-
-    df = apply_aqs_function(df)
+    end = time()
+    time_taken1 = round(end - start, 2)
+    print('dist_nearest_greenspace_function complete')                      
+    print('Time taken:', time_taken1)
     
+    #predict air quality metric value at each coordinate using distance weighted knn models
+    start = time()
+    df = parallelise(df, apply_aq_metric_functions)
+    end = time()
+    time_taken2 = round(end - start, 2)
+    print('apply_aq_metric_functions complete')                      
+    print('Time taken:', time_taken2)
+    
+    #calculate an air quality score from aq metrics
+    start = time()
+    df = apply_aqs_function(df)
+    print('apply_aqs_function complete')
+    end = time()
+    time_taken3 = round(end - start, 2)
+    print('Time taken:', time_taken3)
+    
+    #predict population density metric value at each coordinate using distance weighted knn model
+    start = time()
     df = parallelise(df, apply_popd_function)
+    print('apply_popd_function complete')
+    end = time()
+    time_taken4 = round(end - start, 2)
+    print('Time taken:', time_taken4)
+    
+    total_time_taken = time_taken1 + time_taken2 + time_taken3 + time_taken4
+    print('TOTAL time taken:', total_time_taken)
     
     return df
 
@@ -520,7 +554,13 @@ def fill_penultimate_df(bucket = '', key = ''):
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
     
+    #calculate greenspace score from aq score, pop density and distance from nearest greenspace
+    start = time()
     df = apply_greenspace_score_function(df, resolution = 250)
+    end = time()
+    time_taken4 = round(end - start, 2)
+    print('apply_greenspace_score_function complete')
+    print('Time taken:', time_taken4)
     
     return df
 
@@ -651,10 +691,17 @@ def create_final_df():
 
 if __name__ == "__main__":
     create_ai_pickle()
+    print('create_ai_pickle complete')
     create_co_pickle()
+    print('create_co_pickle complete')
     create_no2_pickle()
+    print('create_no2_pickle complete')
     create_o3_pickle()
+    print('create_o3_pickle complete')
     create_popdensity_pickle()
+    print('create_popdensity_pickle complete')
     create_so2_pickle()
+    print('create_so2_pickle complete')
     
     create_final_df()
+    print('create_final_df complete')
