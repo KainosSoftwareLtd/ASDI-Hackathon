@@ -56,6 +56,7 @@ app.layout = html.Div(children=[
                         {'label': 'Airports', 'value': 'Airport'},
                         {'label': 'Water', 'value': 'Water'},
                         {'label': 'Railway Stations', 'value': 'Railway_Station'},
+                        {'label': 'Distance from Nearest Greenspace (km)', 'value': 'Distance_Nearest_Greenspace'},
                         {'label': 'Land Type Penalty (<1) or Reward (>1)', 'value': 'avg_penalty_reward'}
             ],
             optionHeight=25,                    #height/space between dropdown options
