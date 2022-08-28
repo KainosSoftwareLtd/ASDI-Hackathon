@@ -18,6 +18,7 @@ from multiprocess import Pool
 from multiprocess import cpu_count
 from Enums.land_type import LAND_TYPE
 import requests
+from sklearn.neighbors import BallTree
 
 
 #for using locally
@@ -365,10 +366,10 @@ def parallelise(df, func):
     #from multiprocessing import set_start_method
     #for Jupyter Notebook implementations:
     from multiprocess import set_start_method
-    #set_start_method("spawn")
+    set_start_method("spawn")
     #'fork' crashes process, a known issue with MacOS
     #gitignore of local csvs maybe causing problem with 'fork' start method
-    set_start_method("fork")
+    #set_start_method("fork")
     #set_start_method("forkserver")
     
     n_cores = cpu_count()
@@ -435,6 +436,36 @@ def apply_aqs_function(df):
     df = df.drop(['norm_Value_co', 'norm_Value_no2', 'norm_Value_o3', 'norm_Value_so2', 'norm_Value_ai'], axis = 1)
     return df
 
+def dist_nearest_greenspace_function(df):
+    df_greenspace1 = df.loc[df.Green_Space == 1, :]
+    df_greenspace1 = df_greenspace1[['Latitude', 'Longitude']]
+    df_greenspace1 = df_greenspace1.apply(np.radians)
+
+    df_greenspace0 = df.loc[df.Green_Space == 0, :]
+    df_greenspace0 = df_greenspace0[['Latitude', 'Longitude']]
+    df_greenspace0 = df_greenspace0.apply(np.radians)
+    
+    tree = BallTree(df_greenspace1, leaf_size=40, metric = 'haversine') 
+    dist, ind = tree.query(df_greenspace0, k=1)
+    
+    distances = []
+    for i in range(len(dist)):
+        distances.append(dist[i][0])
+        
+    radius_earth = 6371
+    distances_km = [item * radius_earth for item in distances]
+    
+    df_greenspace0 = df.loc[df.Green_Space == 0, :]
+    df_greenspace0 = df_greenspace0.reset_index(drop = True)
+    column_values = pd.Series(distances_km)
+    df_greenspace0.insert(loc=8, column='Distance_Nearest_Greenspace', value=column_values)
+    
+    df_merged = pd.merge(df, df_greenspace0[['Latitude', 'Longitude', 'Distance_Nearest_Greenspace']], how="left", on=['Latitude', 'Longitude'])
+
+    df_merged['Distance_Nearest_Greenspace'] = df_merged['Distance_Nearest_Greenspace'].replace(np.nan, 0.000000)
+    
+    return df_merged
+
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
@@ -457,7 +488,7 @@ def calculate_popd_weight(df, resolution):
     popd_weight = standard_gs_per_pop_m2 / gs_per_capita   #a value >1 indicates failing to meet WHO standard, a value < 1 indicates beating the standard
     return popd_weight
 
-def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, popd_weight):
+def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, dist_nearest_greenspace, popd_weight):
     #Population Density
     popd_pct = 25/100
     
@@ -465,6 +496,11 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
     #aqs_pct derived from remainder of popd_weight * popd_pct so that AQ becomes focused more in greenspace score when population density less of a concern for greenspaces
     aqs_pct = (1 - (popd_weight * popd_pct))
     aqs_weight = 1
+    
+    #Distance from Nearest Greenspace (reward only based on magnitude distance in km)
+    dist_nearest_greenspace += 1
+    #all 0 values (i.e. currently a greenspace at coord) have 1 added to it so * 1 dist_nearest_greenspace has no effect
+    #all values greater than 1 (i.e. currently NO greenspace at coord) have 1 added to it so * e.g. 1.5 (for 0.5 km distance) dist_nearest_greenspace acts as reward
     
     #Land Type
     ###############################
@@ -480,6 +516,7 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
     ###############################
     if green_space == 1:
         green_space_weight = 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+        dist_nearest_greenspace = 1   #to avoid value from dist_nearest_greenspace contradicting green_space_weight, set dist_nearest_greenspace to 1, effectively cancelling it out from greenspace score calculation
     else:
         green_space_weight = 1.1   #small reward for no greenspace
     ###############################
@@ -499,7 +536,7 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
         building_weight = 1
     ###############################
     
-    penalty_reward = airport_weight * water_weight * green_space_weight * railway_station_weight * urban_area_weight * building_weight
+    penalty_reward = airport_weight * water_weight * green_space_weight * railway_station_weight * urban_area_weight * building_weight * dist_nearest_greenspace
         
     Greenspace_score = ((aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct))) * penalty_reward
     
@@ -514,7 +551,8 @@ def apply_greenspace_score_function(df, resolution):
                                                                                 row['Building'],
                                                                                 row['Green_Space'],
                                                                                 row['Railway_Station'],
-                                                                                row['Urban_Area'], popd_weight), axis=1, result_type = 'expand')
+                                                                                row['Urban_Area'],
+                                                                                row['Distance_Nearest_Greenspace'], popd_weight), axis=1, result_type = 'expand')
     print('popd_weight = ', popd_weight)
     return df
 
@@ -533,28 +571,39 @@ def fill_points_land_type_df(bucket = '', key = ''):
     for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
         df[i] = df[i].astype(int)
     
+    #calculate distance to nearest greenspaces
+    start = time()
+    df = dist_nearest_greenspace_function(df)
+    end = time()
+    time_taken1 = round(end - start, 2)
+    print('dist_nearest_greenspace_function complete')                      
+    print('Time taken:', time_taken1)
+    
+    #predict air quality metric value at each coordinate using distance weighted knn models
     start = time()
     df = parallelise(df, apply_aq_metric_functions)
     end = time()
-    time_taken1 = round(end - start, 2)
+    time_taken2 = round(end - start, 2)
     print('apply_aq_metric_functions complete')                      
-    print('Time taken:', time_taken1)
+    print('Time taken:', time_taken2)
     
+    #calculate an air quality score from aq metrics
     start = time()
     df = apply_aqs_function(df)
     print('apply_aqs_function complete')
     end = time()
-    time_taken2 = round(end - start, 2)
-    print('Time taken:', time_taken2)
+    time_taken3 = round(end - start, 2)
+    print('Time taken:', time_taken3)
     
+    #predict population density metric value at each coordinate using distance weighted knn model
     start = time()
     df = parallelise(df, apply_popd_function)
     print('apply_popd_function complete')
     end = time()
-    time_taken3 = round(end - start, 2)
-    print('Time taken:', time_taken3)
+    time_taken4 = round(end - start, 2)
+    print('Time taken:', time_taken4)
     
-    total_time_taken = time_taken1 + time_taken2 + time_taken3
+    total_time_taken = time_taken1 + time_taken2 + time_taken3 + time_taken4
     print('TOTAL time taken:', total_time_taken)
     
     return df
@@ -569,7 +618,8 @@ def fill_penultimate_df(bucket = '', key = ''):
         client = boto3.client('s3')
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
-        
+    
+    #calculate greenspace score from aq score, pop density and distance from nearest greenspace
     start = time()
     df = apply_greenspace_score_function(df, resolution = 250)
     end = time()
