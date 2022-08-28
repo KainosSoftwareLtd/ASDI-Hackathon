@@ -2,7 +2,6 @@ import pickle
 import pandas as pd
 import numpy as np
 import math
-from haversine import *
 import boto3
 from io import StringIO # python3; python2: BytesIO 
 import pickle
