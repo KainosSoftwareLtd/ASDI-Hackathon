@@ -23,7 +23,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import LeaveOneOut
-from sklearn.model_selection import train_test_split
 
 df_train, df_test = train_test_split(df, random_state = 0, test_size = 0.01)
 

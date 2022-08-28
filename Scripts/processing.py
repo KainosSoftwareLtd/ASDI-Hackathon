@@ -17,9 +17,7 @@ from multiprocess import cpu_count
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import LeaveOneOut
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import BallTree
 
 def create_ai_pickle():
