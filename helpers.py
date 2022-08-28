@@ -366,10 +366,10 @@ def parallelise(df, func):
     #from multiprocessing import set_start_method
     #for Jupyter Notebook implementations:
     from multiprocess import set_start_method
-    set_start_method("spawn")
+    #set_start_method("spawn")
     #'fork' crashes process, a known issue with MacOS
     #gitignore of local csvs maybe causing problem with 'fork' start method
-    #set_start_method("fork")
+    set_start_method("fork")
     #set_start_method("forkserver")
     
     n_cores = cpu_count()

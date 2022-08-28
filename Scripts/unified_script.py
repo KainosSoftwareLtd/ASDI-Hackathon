@@ -295,8 +295,16 @@ def upload_df_to_s3(bucket, df, key):
         print('Failed upload')
         
 def parallelise(df, func):
+    #https://docs.python.org/3/library/multiprocessing.html
+    #from multiprocessing import set_start_method
+    #for Jupyter Notebook implementations:
     from multiprocess import set_start_method
     set_start_method("spawn")
+    #'fork' crashes process, a known issue with MacOS
+    #gitignore of local csvs maybe causing problem with 'fork' start method
+    #set_start_method("fork")
+    #set_start_method("forkserver")
+    
     n_cores = cpu_count()
     df_splits = np.array_split(df, n_cores)
     pool = Pool(n_cores)
@@ -317,15 +325,10 @@ def apply_aq_metric_functions(df):
     #axis = 1, apply function to each row
     
     df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
-    #print('co_function complete')
     df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
-    #print('no2_function complete')
     df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
-    #print('o3_function complete')
     df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
-    #print('so2_function complete')
     df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
-    #print('ai_function complete')
     return df
 
 def normalise_aq_metric_columns(df):
@@ -361,6 +364,36 @@ def apply_aqs_function(df):
     df = df.drop(['norm_Value_co', 'norm_Value_no2', 'norm_Value_o3', 'norm_Value_so2', 'norm_Value_ai'], axis = 1)
     return df
 
+def dist_nearest_greenspace_function(df):
+    df_greenspace1 = df.loc[df.Green_Space == 1, :]
+    df_greenspace1 = df_greenspace1[['Latitude', 'Longitude']]
+    df_greenspace1 = df_greenspace1.apply(np.radians)
+
+    df_greenspace0 = df.loc[df.Green_Space == 0, :]
+    df_greenspace0 = df_greenspace0[['Latitude', 'Longitude']]
+    df_greenspace0 = df_greenspace0.apply(np.radians)
+    
+    tree = BallTree(df_greenspace1, leaf_size=40, metric = 'haversine') 
+    dist, ind = tree.query(df_greenspace0, k=1)
+    
+    distances = []
+    for i in range(len(dist)):
+        distances.append(dist[i][0])
+        
+    radius_earth = 6371
+    distances_km = [item * radius_earth for item in distances]
+    
+    df_greenspace0 = df.loc[df.Green_Space == 0, :]
+    df_greenspace0 = df_greenspace0.reset_index(drop = True)
+    column_values = pd.Series(distances_km)
+    df_greenspace0.insert(loc=8, column='Distance_Nearest_Greenspace', value=column_values)
+    
+    df_merged = pd.merge(df, df_greenspace0[['Latitude', 'Longitude', 'Distance_Nearest_Greenspace']], how="left", on=['Latitude', 'Longitude'])
+
+    df_merged['Distance_Nearest_Greenspace'] = df_merged['Distance_Nearest_Greenspace'].replace(np.nan, 0.000000)
+    
+    return df_merged
+
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
@@ -368,76 +401,86 @@ def apply_popd_function(df):
     return df
 
 def calculate_popd_weight(df, resolution):
-    #50m2 per capita according to WHO standards or 100m2 (our resolution) per 2 people
+    #https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6209905/
+    #minimum of 9m2 per capita according to WHO 
+    #50m2 per capita ideal according to WHO standards or 100m2 (our resolution) per 2 people
     standard_gs_per_pop_m2 = 50
     sum_df_popd = df['Pop_density'].sum()
-    sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * resolution   #sum of greenspace multiplied by resolution
+    sum_df_greenspace_m2 = len(df[df['Green_Space'] == 1]) * resolution  #sum of greenspace multiplied by resolution (assumption greenspace covers entirety of 250m2 area which unlikely for all)
     gs_per_capita = sum_df_greenspace_m2 / sum_df_popd
     #if current greenspace per capita is BETTER than WHO standards, it is LESS likely greenspace is required so PENALISE with lower weighting
     #weight <1 will decrease contribution of pop density to greenspace score
     #if current greenspace per capita is WORSE than WHO standards, it is MORE likely greenspace is required so REWARD with higher weighting
     #weight >1 will increase contribution of pop density to greenspace score
     #weight =1 means weighting is essentially cancelled out
-    popd_weight = standard_gs_per_pop_m2 / gs_per_capita
+    popd_weight = standard_gs_per_pop_m2 / gs_per_capita   #a value >1 indicates failing to meet WHO standard, a value < 1 indicates beating the standard
     return popd_weight
 
-def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, popd_weight):
+def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, dist_nearest_greenspace, popd_weight):
     #Population Density
-    popd_pct = 50/100
+    popd_pct = 25/100
     
     #Air Quality Score
     #aqs_pct derived from remainder of popd_weight * popd_pct so that AQ becomes focused more in greenspace score when population density less of a concern for greenspaces
     aqs_pct = (1 - (popd_weight * popd_pct))
     aqs_weight = 1
     
+    #Distance from Nearest Greenspace (reward only based on magnitude distance in km)
+    dist_nearest_greenspace += 1
+    #all 0 values (i.e. currently a greenspace at coord) have 1 added to it so * 1 dist_nearest_greenspace has no effect
+    #all values greater than 1 (i.e. currently NO greenspace at coord) have 1 added to it so * e.g. 1.5 (for 0.5 km distance) dist_nearest_greenspace acts as reward
+    
     #Land Type
-    penalty_reward_row_sum = 0
     ###############################
     if airport == 1:
-        penalty_reward_row_sum += 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
+        airport_weight = 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
     else:
-        penalty_reward_row_sum += 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
+        airport_weight = 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
     ###############################
     if water == 1:
-        penalty_reward_row_sum += 0
+        water_weight = 0
     else:
-        penalty_reward_row_sum += 1
+        water_weight = 1
     ###############################
     if green_space == 1:
-        penalty_reward_row_sum += 0.75   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+        green_space_weight = 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
+        dist_nearest_greenspace = 1   #to avoid value from dist_nearest_greenspace contradicting green_space_weight, set dist_nearest_greenspace to 1, effectively cancelling it out from greenspace score calculation
     else:
-        penalty_reward_row_sum += 1
+        green_space_weight = 1.1   #small reward for no greenspace
     ###############################
     if railway_station == 1:
-        penalty_reward_row_sum += 0
+        railway_station_weight = 0
     else:
-        penalty_reward_row_sum += 1
-    ###############################
-    if building == 1:
-        penalty_reward_row_sum += 1.25
-    else:
-        penalty_reward_row_sum += 1
+        railway_station_weight = 1
     ###############################
     if urban_area == 1:
-        penalty_reward_row_sum += 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
+        urban_area_weight = 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
     else:
-        penalty_reward_row_sum += 1
+        urban_area_weight = 1
     ###############################
-    avg_penalty_reward = penalty_reward_row_sum / 6
+    if building == 1:
+        building_weight = 0.5   #due to inconvenience knocking down a building for a greenspace, a modest penalty
+    else:
+        building_weight = 1
+    ###############################
+    
+    penalty_reward = airport_weight * water_weight * green_space_weight * railway_station_weight * urban_area_weight * building_weight * dist_nearest_greenspace
         
-    Greenspace_score = (aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct)) * avg_penalty_reward
-    return [Greenspace_score, avg_penalty_reward]
+    Greenspace_score = ((aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct))) * penalty_reward
+    
+    return [Greenspace_score, penalty_reward]
     
 def apply_greenspace_score_function(df, resolution):
     popd_weight = calculate_popd_weight(df, resolution)
-    df[['Greenspace_score', 'avg_penalty_reward']] = df.apply(lambda row : greenspace_score_function(row['AQ_score'], 
+    df[['Greenspace_score', 'penalty_reward']] = df.apply(lambda row : greenspace_score_function(row['AQ_score'], 
                                                                                 row['Pop_density'],
                                                                                 row['Airport'],
                                                                                 row['Water'],
                                                                                 row['Building'],
                                                                                 row['Green_Space'],
                                                                                 row['Railway_Station'],
-                                                                                row['Urban_Area'], popd_weight), axis=1, result_type = 'expand')
+                                                                                row['Urban_Area'],
+                                                                                row['Distance_Nearest_Greenspace'], popd_weight), axis=1, result_type = 'expand')
     print('popd_weight = ', popd_weight)
     return df
 
@@ -456,10 +499,12 @@ def fill_points_land_type_df(bucket = '', key = ''):
     for i in ['Airport', 'Water', 'Building', 'Green_Space', 'Railway_Station', 'Urban_Area']:
         df[i] = df[i].astype(int)
     
-    df = parallelise(df, apply_aq_metric_functions)
-    
-    df = apply_aqs_function(df)
+    df = dist_nearest_greenspace_function(df)
 
+    df = parallelise(df, apply_aq_metric_functions)
+
+    df = apply_aqs_function(df)
+    
     df = parallelise(df, apply_popd_function)
     
     return df
@@ -474,9 +519,9 @@ def fill_penultimate_df(bucket = '', key = ''):
         client = boto3.client('s3')
         obj = client.get_object(Bucket=bucket, Key=key)
         df = pd.read_csv(obj['Body'])
-          
+    
     df = apply_greenspace_score_function(df, resolution = 250)
-
+    
     return df
 
 def co_function(lat, lon, bucket = '', key = ''):
