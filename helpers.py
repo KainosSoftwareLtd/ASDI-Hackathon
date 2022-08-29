@@ -362,15 +362,16 @@ def get_spaced_point_set_in_bbox(d, bottom_left, top_right):
     return point_set_df
 
 def parallelise(df, func):
-    #https://docs.python.org/3/library/multiprocessing.html
-    #from multiprocessing import set_start_method
-    #for Jupyter Notebook implementations:
-    from multiprocess import set_start_method
-    #set_start_method("spawn")
-    #'fork' crashes process, a known issue with MacOS
-    #gitignore of local csvs maybe causing problem with 'fork' start method
-    set_start_method("fork")
-    #set_start_method("forkserver")
+    # #error caused by loading pickle from s3 bucket rather than locally...seemingly
+    # #https://docs.python.org/3/library/multiprocessing.html
+    # #from multiprocessing import set_start_method
+    # #for Jupyter Notebook implementations:
+    # from multiprocess import set_start_method
+    # #set_start_method("spawn")
+    # #'fork' crashes process, a known issue with MacOS
+    # #gitignore of local csvs maybe causing problem with 'fork' start method
+    # set_start_method("fork")
+    # #set_start_method("forkserver")
     
     n_cores = cpu_count()
     df_splits = np.array_split(df, n_cores)
@@ -391,16 +392,16 @@ def apply_aq_metric_functions(df):
     #apply aq functions to each row (using latitude and longitude columns) and multiply by associated molar mass to give g/m2
     #axis = 1, apply function to each row
     
-    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
-    print('co_function complete')
-    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
-    print('no2_function complete')
-    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
-    print('o3_function complete')
-    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
-    print('so2_function complete')
-    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
-    print('ai_function complete')
+    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude']) * co_molar_mass, axis=1)
+    #print('co_function complete')
+    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude']) * no2_molar_mass, axis=1)
+    #print('no2_function complete')
+    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude']) * o3_molar_mass, axis=1)
+    #print('o3_function complete')
+    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude']) * so2_molar_mass, axis=1)
+    #print('so2_function complete')
+    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude']), axis=1)
+    #print('ai_function complete')
     return df
 
 def normalise_aq_metric_columns(df):
@@ -469,7 +470,7 @@ def dist_nearest_greenspace_function(df):
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
-    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/popdensity_model.pkl'), axis=1)
+    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
     return df
 
 def calculate_popd_weight(df, resolution):
