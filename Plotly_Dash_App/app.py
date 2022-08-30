@@ -56,7 +56,8 @@ app.layout = html.Div(children=[
                         {'label': 'Airports', 'value': 'Airport'},
                         {'label': 'Water', 'value': 'Water'},
                         {'label': 'Railway Stations', 'value': 'Railway_Station'},
-                        {'label': 'Land Type Penalty (<1) or Reward (>1)', 'value': 'avg_penalty_reward'}
+                        {'label': 'Distance from Nearest Greenspace (km)', 'value': 'Distance_Nearest_Greenspace'},
+                        {'label': 'Land Type Penalty (<1) or Reward (>1)', 'value': 'penalty_reward'}
             ],
             optionHeight=25,                    #height/space between dropdown options
             value='Greenspace_score',         #dropdown value selected automatically when page loads
@@ -87,30 +88,30 @@ app.layout = html.Div(children=[
 )
 
 def build_graph(column_chosen):
-    if column_chosen in ['Pop_density']:
+    if column_chosen in []:
         # density
         #https://plotly.com/python/builtin-colorscales/
-        fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.35,
+        fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.4,
                             center=dict(lat=51.50009, lon=0.1268072), zoom=9,
                             #'open-street-map', 'carto-positron", 'carto-darkmatter', 'stamen-terrain', 'stamen-toner', 'stamen-watercolor' 
                             mapbox_style="carto-positron",
-                            color_continuous_scale = 'Thermal')   #or Turbo
+                            color_continuous_scale = 'Aggrnyl')   #or Turbo
     elif column_chosen in ['Green_Space', 'Urban_Area', 'Building', 'Water', 'Airport', 'Railway_Station']:
         # scatter
         fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', 
-                                opacity = 0.35, color = column_chosen,
-                                zoom=9, mapbox_style="carto-positron", color_continuous_scale = ['white', 'red'])
-    elif column_chosen in ['Greenspace_score']:
+                                opacity = 0.25, color = column_chosen,
+                                zoom=9, mapbox_style="carto-positron", color_continuous_scale = ['white', 'green'])
+    elif column_chosen in ['Greenspace_score', 'Distance_Nearest_Greenspace', 'Pop_density']:
         # scatter
         fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', size = column_chosen,
-                                opacity = 0.35, zoom=9, mapbox_style="carto-positron", 
-                                color = column_chosen, color_continuous_scale = 'Thermal')
+                                opacity = 0.3, zoom=9, mapbox_style="carto-positron", 
+                                color = column_chosen, color_continuous_scale = 'Aggrnyl')
     else:
         # hexbin
         # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
         fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
-                                    opacity=0.35, center=dict(lat=51.50009, lon=0.1268072),
-                                    mapbox_style="carto-positron", zoom=9, color_continuous_scale = 'Turbo',
+                                    opacity=0.25, center=dict(lat=51.50009, lon=0.1268072),
+                                    mapbox_style="carto-positron", zoom=9, color_continuous_scale = 'Aggrnyl',
                                     labels={"color": column_chosen}, agg_func = np.mean)
                                     #, min_count=1)
         fig.update_traces(marker_line_width=0)
