@@ -27,13 +27,13 @@ We meet the following UN Sustainable Development Goals:
 - Good health and Well-Being
     - Green spaces protect the local populace from toxic gases, high urban temperatures but also provide a mental benefit by being a place of community and activity
 - Reduced inequalities
-    - Considering the wide ranging benefits of greenspaces to people's health and well-being, our dashboard should help solve 'greenspace inequality'
+    - Considering the wide ranging benefits of green spaces to people's health and well-being, our dashboard should help solve 'greenspace inequality' as green spaces could be considered social assets
 - Sustainable Cities and Communities
-    - 
+    - Green spaces help cultivate communities in cities by providing a space for activities and people to congregate
 - Climate Action
     - Green spaces contribute to the absorption of greenhouse gases and reduced surface temperatures
 - Life on Land
-    - Green spaces in urban metropolises' protect the biodiversity by allowing space for ecosystems to thrive
+    - Green spaces in urban metropolises protect the biodiversity by allowing space for ecosystems to thrive
 - Partnerships for the Goals
     - Given the wide-ranging data employed and the need for specialists to hone in the calculation of a green space score, no doubt our dashboard and its maintenance requires a coalition of parties to ensure it succeeds
 
@@ -47,11 +47,11 @@ Our resolution of 250m is a parameter, the KNN weighted distance models facilita
 We have demonstrated our dashboard via Plotly Dash, which suited our needs for a Minimum Viable Product, however there are major drawbacks with regards to the performance of plotting at this resolution; in fact we became limited to 250m given Plotly Dash started to crash with anything beyond. Given more time, we would implement our dashboard in AWS QuickSight given their affinity with larger datasets, not to mention the easy integration available with other cloud infrastructure.
 
 ## How to setup and run
+To setup the fundamental CSVs from the S3 buckets for Sentinel-5P Level 2 and the High Resolution Population Density Maps + Demographic Estimates by CIESIN and Meta from which the dashboard data is originally derived, run the associated EDA notebooks which should extract and then preprocess the data into a format useable by the current code in the repository. After you produce these CSVs and upload them to your own S3 bucket, there is functionality to use this to produce the KNN model pickle and beyond. 
+
 The project is fully functional with the local CSVs as well as access to the S3 bucket wherein the CSVs are also stored. Within the Notebooks folder, simply run create_penultimate.ipynb (with the chosen cells) followed by create_final_df.ipynb. These populate the final CSV (final_df.csv) that is plotted via the Plotly Dash App.
 
 To initialise the Plotly Dash web app, run app.py in the Plotly_Dash_App folder. This step can be run with the currently populated local final CSV, final_df.csv. To run on the ocmmand line, cd into Plotly_Dash_App folder and run 'python3 app.py'.
 
-Talk about setting up s3 bucket calls including processing.py
-
-Formulae?
+To edit the green space score function and other functions such as the air quality score, enter the helpers.py script file where they are located.
 
