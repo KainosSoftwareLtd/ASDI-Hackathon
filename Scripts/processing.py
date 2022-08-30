@@ -22,8 +22,8 @@ import statistics
 
 def create_ai_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/aerosol-index/ai_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -57,12 +57,12 @@ def create_ai_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/ai_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_co_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/carbon-monoxide/co_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -98,12 +98,12 @@ def create_co_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/co_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_no2_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/nitrogen-dioxide/no2_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -139,12 +139,12 @@ def create_no2_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/no2_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_o3_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/ozone/o3_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -180,13 +180,13 @@ def create_o3_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/o3_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_popdensity_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key1 = 'population-data/popcsv/longitude0.csv'
-    file_key2 = 'population-data/popcsv/longitudeNeg10.csv'
+    bucket=''
+    file_key1 = ''
+    file_key2 = ''
     obj1 = client.get_object(Bucket=bucket, Key=file_key1)
     obj2 = client.get_object(Bucket=bucket, Key=file_key2)
     df1 = pd.read_csv(obj1['Body'])
@@ -212,12 +212,12 @@ def create_popdensity_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'ball_tree', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/popdensity_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_so2_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/sulphur-dioxide/so2_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -253,13 +253,13 @@ def create_so2_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/so2_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def upload_pickle_to_s3(bucket, model, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         model (object): in memory model to pickle
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
@@ -278,7 +278,7 @@ def upload_df_to_s3(bucket, df, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         df (Pandas dataframe): in memory dataframe to save as .csv
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
@@ -684,13 +684,13 @@ def popdensity_function(lat, lon, bucket = '', key = ''):
     return preds[0]
 
 def create_final_df():
-    penultimate_df = fill_points_land_type_df('asdi-hackathon', 'land_type_025.csv')
+    penultimate_df = fill_points_land_type_df('', '')
         
-    upload_df_to_s3(bucket = 'asdi-hackathon', df = penultimate_df, key = 'final-data/penultimate_df.csv')
+    upload_df_to_s3(bucket = '', df = penultimate_df, key = '')
 
-    final_df = fill_penultimate_df('asdi-hackathon', 'final-data/penultimate_df.csv')
+    final_df = fill_penultimate_df('', '')
 
-    upload_df_to_s3(bucket = 'asdi-hackathon', df = final_df, key = 'final-data/final_df.csv')
+    upload_df_to_s3(bucket = '', df = final_df, key = '')
 
     return final_df
 

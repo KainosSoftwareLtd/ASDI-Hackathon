@@ -641,7 +641,7 @@ def upload_pickle_to_s3(bucket, model, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         model (object): in memory model to pickle
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
@@ -660,7 +660,7 @@ def upload_df_to_s3(bucket, df, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         df (Pandas dataframe): in memory dataframe to save as .csv
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
