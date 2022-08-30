@@ -35,6 +35,8 @@ We meet the following UN Sustainable Development Goals:
 - Partnerships for the Goals
     - Given the wide-ranging data employed and the need for specialists to hone in the calculation of a green space score, no doubt our dashboard and its maintenance requires a coalition of parties to ensure it succeeds
 
+COPY LIAM'S 
+
 ## Future Work
 Besides obviously expanding the datasets and getting true domain experts to refine the greenspace calculation, we see an expansion of scope of this project to envelope other major cities of the world. Once this is achieved, further aggregated analysis can be provided on the dashboard such as relative metrics compared to other cities. We have also explored developing a data pipeline to facilitate new data through processing jobs on Sagemaker; this cloud infrastructuture would be integral to any expansion going forward, particularly given the option for scaleability as the data becomes larger and larger. Our resolution of 250m is a parameter, the KNN weighted distance models facilitate any resolution, however, of course, ideally, one would prefer to add higher resolution data to begin with so that its predictions do not become too detracted from reality. We also would have liked to expand the land types to include other key infrastructure that a greenspace should not be suggested to replace such as hospitals.
 

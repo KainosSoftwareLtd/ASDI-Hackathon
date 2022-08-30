@@ -49,9 +49,13 @@ app.layout = html.Div(children=[
     
     html.H1(children='Green Space Suggestion Dashboard', style = {'font-family': 'Arial', 
                                                                   'textAlign': 'center', 
-                                                                  'background-color': 'chartreuse', 
-                                                                  'color': 'white', 
-                                                                  'font-size': '40px'}),
+                                                                  #'background-color': 'limegreen', 
+                                                                  'color': 'black', 
+                                                                  'font-size': '40px',
+                                                                  #'border-bottom-color': 'limegreen',
+                                                                  #'border-bottom-style': 'solid',
+                                                                  'border-bottom': '4px solid limegreen',
+                                                                  'padding-bottom': '0.5em'}),
 
     html.Div([
         
@@ -79,7 +83,7 @@ app.layout = html.Div(children=[
                         {'label': 'Land Type Penalty (<1) or Reward (>1)', 'value': 'Land Type Penalty (<1) or Reward (>1)'}
             ],
             optionHeight=20,                    #height/space between dropdown options
-            value='Air Quality (AQ) Metric',         #dropdown value selected automatically when page loads
+            value='Water Bodies',         #dropdown value selected automatically when page loads
             disabled=False,                     #disable dropdown value selection
             multi=False,                        #allow multiple dropdown values to be selected
             searchable=True,                    #allow user-searching of dropdown values
@@ -107,30 +111,30 @@ app.layout = html.Div(children=[
 )
 
 def build_graph(column_chosen):
-    if column_chosen in []:
+    if column_chosen in ['Population Density']:
         # density
         #https://plotly.com/python/builtin-colorscales/
         fig = px.density_mapbox(df, lat='Latitude', lon='Longitude', z=column_chosen, radius=15, opacity=0.4,
-                            center=dict(lat=51.50009, lon=0.1268072), zoom=9,
+                            center=dict(lat=51.50009, lon=0.1268072), zoom=9.25,
                             #'open-street-map', 'carto-positron", 'carto-darkmatter', 'stamen-terrain', 'stamen-toner', 'stamen-watercolor' 
                             mapbox_style="carto-positron",
-                            color_continuous_scale = 'Aggrnyl')   #or Turbo
+                            color_continuous_scale = 'Turbo')   #or Turbo
     elif column_chosen in ['Current Green Spaces', 'Urban Areas', 'Buildings', 'Water Bodies', 'Airports', 'Railway Stations']:
         # scatter
         fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', 
                                 opacity = 0.25, color = column_chosen,
-                                zoom=9, mapbox_style="carto-positron", color_continuous_scale = ['white', 'green'])
-    elif column_chosen in ['Green Space Score', 'Distance from Nearest Green Space', 'Population Density']:
+                                zoom=9.25, mapbox_style="carto-positron", color_continuous_scale = ['white', 'green'])
+    elif column_chosen in ['Green Space Score', 'Distance from Nearest Green Space']:
         # scatter
         fig = px.scatter_mapbox(df, lat='Latitude', lon='Longitude', size = column_chosen,
-                                opacity = 0.3, zoom=9, mapbox_style="carto-positron", 
-                                color = column_chosen, color_continuous_scale = 'Aggrnyl')
+                                opacity = 0.3, zoom=9.5, mapbox_style="carto-positron", 
+                                color = column_chosen, color_continuous_scale = 'Turbo')
     else:
         # hexbin
         # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
         fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
                                     opacity=0.25, center=dict(lat=51.50009, lon=0.1268072),
-                                    mapbox_style="carto-positron", zoom=9, color_continuous_scale = 'Turbo',
+                                    mapbox_style="carto-positron", zoom=9.25, color_continuous_scale = 'Turbo',
                                     labels={"color": column_chosen}, agg_func = np.mean)
                                     #, min_count=1)
         fig.update_traces(marker_line_width=0)
