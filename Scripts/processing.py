@@ -18,11 +18,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import LeaveOneOut
 from sklearn.neighbors import BallTree
+import statistics
 
 def create_ai_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/aerosol-index/ai_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -56,12 +57,12 @@ def create_ai_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/ai_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_co_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/carbon-monoxide/co_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -97,12 +98,12 @@ def create_co_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/co_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_no2_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/nitrogen-dioxide/no2_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -138,12 +139,12 @@ def create_no2_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/no2_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_o3_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/ozone/o3_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -179,13 +180,13 @@ def create_o3_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/o3_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_popdensity_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key1 = 'population-data/popcsv/longitude0.csv'
-    file_key2 = 'population-data/popcsv/longitudeNeg10.csv'
+    bucket=''
+    file_key1 = ''
+    file_key2 = ''
     obj1 = client.get_object(Bucket=bucket, Key=file_key1)
     obj2 = client.get_object(Bucket=bucket, Key=file_key2)
     df1 = pd.read_csv(obj1['Body'])
@@ -211,12 +212,12 @@ def create_popdensity_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'ball_tree', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/popdensity_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def create_so2_pickle():
     client = boto3.client('s3')
-    bucket='asdi-hackathon'
-    file_key = 'aq-sentinel/sulphur-dioxide/so2_sentinel_01-16june.csv'
+    bucket=''
+    file_key = ''
     obj = client.get_object(Bucket=bucket, Key=file_key)
     df = pd.read_csv(obj['Body'])
 
@@ -252,13 +253,13 @@ def create_so2_pickle():
     model = KNeighborsRegressor(n_neighbors=k, weights = 'distance', algorithm = 'brute', metric = 'haversine', n_jobs = -1)
     model.fit(X_train, y_train)
 
-    upload_pickle_to_s3('asdi-hackathon', model, 'pickles/so2_model.pkl')
+    upload_pickle_to_s3('', model, '')
 
 def upload_pickle_to_s3(bucket, model, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         model (object): in memory model to pickle
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
@@ -277,7 +278,7 @@ def upload_df_to_s3(bucket, df, key):
     """  Pickle model and upload to the designated S3 AWS bucket
 
     Args:
-        bucket (string): name of bucket, e.g. asdi-hackathon
+        bucket (string): name of bucket
         df (Pandas dataframe): in memory dataframe to save as .csv
         key (string): path in bucket to save to including any subfolders and the filename and extension
 
@@ -294,6 +295,7 @@ def upload_df_to_s3(bucket, df, key):
         print('Failed upload')
         
 def parallelise(df, func):
+    # #error caused by loading pickle from s3 bucket rather than locally...seemingly
     # #https://docs.python.org/3/library/multiprocessing.html
     # #from multiprocessing import set_start_method
     # #for Jupyter Notebook implementations:
@@ -323,15 +325,15 @@ def apply_aq_metric_functions(df):
     #apply aq functions to each row (using latitude and longitude columns) and multiply by associated molar mass to give g/m2
     #axis = 1, apply function to each row
     
-    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/co_model.pkl') * co_molar_mass, axis=1)
+    df['Value_co'] = df.apply(lambda row : co_function(row['Latitude'], row['Longitude']) * co_molar_mass, axis=1)
     #print('co_function complete')
-    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/no2_model.pkl') * no2_molar_mass, axis=1)
+    df['Value_no2'] = df.apply(lambda row : no2_function(row['Latitude'], row['Longitude']) * no2_molar_mass, axis=1)
     #print('no2_function complete')
-    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/o3_model.pkl') * o3_molar_mass, axis=1)
+    df['Value_o3'] = df.apply(lambda row : o3_function(row['Latitude'], row['Longitude']) * o3_molar_mass, axis=1)
     #print('o3_function complete')
-    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/so2_model.pkl') * so2_molar_mass, axis=1)
+    df['Value_so2'] = df.apply(lambda row : so2_function(row['Latitude'], row['Longitude']) * so2_molar_mass, axis=1)
     #print('so2_function complete')
-    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/ai_model.pkl'), axis=1)
+    df['Value_ai'] = df.apply(lambda row : ai_function(row['Latitude'], row['Longitude']), axis=1)
     #print('ai_function complete')
     return df
 
@@ -373,12 +375,15 @@ def dist_nearest_greenspace_function(df):
     df_greenspace1 = df_greenspace1[['Latitude', 'Longitude']]
     df_greenspace1 = df_greenspace1.apply(np.radians)
 
-    df_greenspace0 = df.loc[df.Green_Space == 0, :]
-    df_greenspace0 = df_greenspace0[['Latitude', 'Longitude']]
-    df_greenspace0 = df_greenspace0.apply(np.radians)
+    df_greenspace0_1 = df
+    df_greenspace0_1 = df_greenspace0_1[['Latitude', 'Longitude']]
+    df_greenspace0_1 = df_greenspace0_1.apply(np.radians)
     
     tree = BallTree(df_greenspace1, leaf_size=40, metric = 'haversine') 
-    dist, ind = tree.query(df_greenspace0, k=1)
+    dist, ind = tree.query(df_greenspace0_1, k=3)
+    
+    for i in range(len(dist)):
+        dist[i] = statistics.mean(dist[i])
     
     distances = []
     for i in range(len(dist)):
@@ -387,21 +392,21 @@ def dist_nearest_greenspace_function(df):
     radius_earth = 6371
     distances_km = [item * radius_earth for item in distances]
     
-    df_greenspace0 = df.loc[df.Green_Space == 0, :]
-    df_greenspace0 = df_greenspace0.reset_index(drop = True)
     column_values = pd.Series(distances_km)
-    df_greenspace0.insert(loc=8, column='Distance_Nearest_Greenspace', value=column_values)
+    df.insert(loc=8, column='Distance_Nearest_Greenspace', value=column_values)
     
-    df_merged = pd.merge(df, df_greenspace0[['Latitude', 'Longitude', 'Distance_Nearest_Greenspace']], how="left", on=['Latitude', 'Longitude'])
-
-    df_merged['Distance_Nearest_Greenspace'] = df_merged['Distance_Nearest_Greenspace'].replace(np.nan, 0.000000)
-    
-    return df_merged
+    return df
 
 def apply_popd_function(df):
     #same as above apply aq functions but with...
     #popdensity_function
-    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude'], 'asdi-hackathon', 'pickles/popdensity_model.pkl'), axis=1)
+    df['Pop_density'] = df.apply(lambda row : popdensity_function(row['Latitude'], row['Longitude']), axis=1)
+    
+    #need normalised version of new pop density column for calculation of pop density component in green space score
+    norm_col = ['Pop_density']
+    for i in df[norm_col]:
+        df['norm_' + i]=(df[i]-df[i].min())/(df[i].max()-df[i].min())
+        
     return df
 
 def calculate_popd_weight(df, resolution):
@@ -422,7 +427,7 @@ def calculate_popd_weight(df, resolution):
 
 def greenspace_score_function(aqs, pop_density, airport, water, building, green_space, railway_station, urban_area, dist_nearest_greenspace, popd_weight):
     #Population Density
-    popd_pct = 25/100
+    popd_pct = 50/100
     
     #Air Quality Score
     #aqs_pct derived from remainder of popd_weight * popd_pct so that AQ becomes focused more in greenspace score when population density less of a concern for greenspaces
@@ -432,52 +437,51 @@ def greenspace_score_function(aqs, pop_density, airport, water, building, green_
     #Distance from Nearest Greenspace (reward only based on magnitude distance in km)
     dist_nearest_greenspace += 1
     #all 0 values (i.e. currently a greenspace at coord) have 1 added to it so * 1 dist_nearest_greenspace has no effect
-    #all values greater than 1 (i.e. currently NO greenspace at coord) have 1 added to it so * e.g. 1.5 (for 0.5 km distance) dist_nearest_greenspace acts as reward
+    #all values greater than 1 have 1 added to it so * e.g. 1.5 (for 0.5 km distance) dist_nearest_greenspace acts as reward
     
     #Land Type
     ###############################
     if airport == 1:
-        airport_weight = 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
+        airport_penalty_reward = 0   #avg_penalty_reward = 0 means a reduction of the greenspace score to 0 (no greenspace permitted here)
     else:
-        airport_weight = 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
+        airport_penalty_reward = 1   #avg_penalty_reward = 1 means no reduction of the greenspace score (a greenspace is permitted here)
     ###############################
     if water == 1:
-        water_weight = 0
+        water_penalty_reward = 0   #water bodies can be large so cannot assume space for a greenspace in a 250m2 tile, do not want to replace water bodies with green spaces as have similar benefits to green spaces
     else:
-        water_weight = 1
+        water_penalty_reward = 1
     ###############################
     if green_space == 1:
-        green_space_weight = 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
-        dist_nearest_greenspace = 1   #to avoid value from dist_nearest_greenspace contradicting green_space_weight, set dist_nearest_greenspace to 1, effectively cancelling it out from greenspace score calculation
+        green_space_penalty_reward = 0.5   #under assumption that while greenspace already exists in each 250m2 tile, that doesn't mean it is entirely greenspace, there could be an area of greenspace within the tile that could be expanded
     else:
-        green_space_weight = 1.1   #small reward for no greenspace
+        green_space_penalty_reward = 1.25   #reward for no greenspace
     ###############################
     if railway_station == 1:
-        railway_station_weight = 0
+        railway_station_penalty_reward = 0.5   #while a railway station exists in the 250m2 tile, railway stations are generally smaller buildings so there is typically other space in the tile for green spaces
     else:
-        railway_station_weight = 1
+        railway_station_penalty_reward = 1
     ###############################
     if urban_area == 1:
-        urban_area_weight = 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
+        urban_area_penalty_reward = 1.25   #reward attributed to existence of urban area given assumption that urban areas probably already need greenspaces given pop density
     else:
-        urban_area_weight = 1
+        urban_area_penalty_reward = 1
     ###############################
     if building == 1:
-        building_weight = 0.5   #due to inconvenience knocking down a building for a greenspace, a modest penalty
+        building_penalty_reward = 0.75   #due to inconvenience knocking down a building for a greenspace, a modest penalty
     else:
-        building_weight = 1
+        building_penalty_reward = 1
     ###############################
     
-    penalty_reward = airport_weight * water_weight * green_space_weight * railway_station_weight * urban_area_weight * building_weight * dist_nearest_greenspace
+    penalty_reward = airport_penalty_reward * water_penalty_reward * green_space_penalty_reward * railway_station_penalty_reward * urban_area_penalty_reward * building_penalty_reward
         
-    Greenspace_score = ((aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct))) * penalty_reward
+    Greenspace_score = ((aqs * (aqs_weight * aqs_pct)) + (pop_density * (popd_weight * popd_pct))) * dist_nearest_greenspace * penalty_reward 
     
     return [Greenspace_score, penalty_reward]
     
 def apply_greenspace_score_function(df, resolution):
     popd_weight = calculate_popd_weight(df, resolution)
     df[['Greenspace_score', 'penalty_reward']] = df.apply(lambda row : greenspace_score_function(row['AQ_score'], 
-                                                                                row['Pop_density'],
+                                                                                row['norm_Pop_density'],
                                                                                 row['Airport'],
                                                                                 row['Water'],
                                                                                 row['Building'],
@@ -486,6 +490,10 @@ def apply_greenspace_score_function(df, resolution):
                                                                                 row['Urban_Area'],
                                                                                 row['Distance_Nearest_Greenspace'], popd_weight), axis=1, result_type = 'expand')
     print('popd_weight = ', popd_weight)
+    
+    #drop now redundant normalised pop density column
+    df = df.drop('norm_Pop_density', axis = 1)
+    
     return df
 
 def fill_points_land_type_df(bucket = '', key = ''):
@@ -676,13 +684,13 @@ def popdensity_function(lat, lon, bucket = '', key = ''):
     return preds[0]
 
 def create_final_df():
-    penultimate_df = fill_points_land_type_df('asdi-hackathon', 'land_type_025.csv')
+    penultimate_df = fill_points_land_type_df('', '')
         
-    upload_df_to_s3(bucket = 'asdi-hackathon', df = penultimate_df, key = 'final-data/penultimate_df.csv')
+    upload_df_to_s3(bucket = '', df = penultimate_df, key = '')
 
-    final_df = fill_penultimate_df('asdi-hackathon', 'final-data/penultimate_df.csv')
+    final_df = fill_penultimate_df('', '')
 
-    upload_df_to_s3(bucket = 'asdi-hackathon', df = final_df, key = 'final-data/final_df.csv')
+    upload_df_to_s3(bucket = '', df = final_df, key = '')
 
     return final_df
 
