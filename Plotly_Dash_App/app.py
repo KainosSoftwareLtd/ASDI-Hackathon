@@ -50,27 +50,27 @@ app.layout = html.Div(children=[
     html.H1(children='Green Space Suggestion Dashboard', style = {'font-family': 'Arial', 
                                                                   'textAlign': 'center', 
                                                                   'background-color': 'chartreuse', 
-                                                                  'color': 'black', 
+                                                                  'color': 'white', 
                                                                   'font-size': '40px'}),
 
     html.Div([
         
         html.Div(id='output_data'),
     
-        html.Label('Select Overlay', style = {'font-family': 'Arial', 'font-size': '15px', 'padding': '2px'}),
+        html.Label('Select Overlay', style = {'font-family': 'Arial', 'font-size': '14px', 'padding': '2px'}),
         
         dcc.Dropdown(id='my_dropdown',
             options=[
                         {'label': 'Green Space Score', 'value': 'Green Space Score'},
-                        {'label': 'Air Quality (AQ) Metric', 'value': 'Air Quality (AQ) Metric'},
+                        {'label': 'Air Quality (AQ) Metric (lower values = higher air quality)', 'value': 'Air Quality (AQ) Metric'},
                         {'label': 'Population Density', 'value': 'Population Density'},
-                        {'label': 'Distance from Nearest Green Space (km)', 'value': 'Distance from Nearest Green Space (km)'},
+                        {'label': 'Average Distance from Nearest 3 Green Spaces (km)', 'value': 'Distance from Nearest Green Space (km)'},
                         {'label': 'AQ Carbon Monoxide', 'value': 'AQ Carbon Monoxide'},
                         {'label': 'AQ Nitrogen Dioxide', 'value': 'AQ Nitrogen Dioxide'},
                         {'label': 'AQ Ozone', 'value': 'AQ Ozone'},
                         {'label': 'AQ Sulphur Dioxide', 'value': 'AQ Sulphur Dioxide'},
-                        {'label': 'AQ Aerosol Index', 'value': 'AQ Aerosol Index'},
-                        {'label': 'Current Green Spaces', 'value': 'Current Green Spaces'},
+                        {'label': 'AQ Aerosol Index (larger particulates, e.g. soot and dust)', 'value': 'AQ Aerosol Index'},
+                        {'label': 'Current Green Spaces (of all sizes)', 'value': 'Current Green Spaces'},
                         {'label': 'Urban Areas', 'value': 'Urban Areas'},
                         {'label': 'Buildings', 'value': 'Buildings'},
                         {'label': 'Airports', 'value': 'Airports'},
@@ -86,7 +86,7 @@ app.layout = html.Div(children=[
             search_value='',                    #remembers the value searched in dropdown
             placeholder='Select data to overlay onto the map',     #gray, default text shown when no option is selected
             clearable=True,                     #allow user to removes the selected value
-            style={'width':"50%",'font-family': 'Arial', 'font-size': '18px', 'textAlign': 'center'},             #use dictionary to define CSS styles of your dropdown
+            style={'width':"55%",'font-family': 'Arial', 'font-size': '16px', 'textAlign': 'center'},             #use dictionary to define CSS styles of your dropdown
             # className='select_box',           #activate separate CSS document in assets folder
             # persistence=True,                 #remembers dropdown value. Used with persistence_type
             # persistence_type='memory'         #remembers dropdown value selected until...
@@ -130,7 +130,7 @@ def build_graph(column_chosen):
         # >100 horizontal hexagons has performance issues, long to load, also get empyt hexagons as no value to fill (would also therefore need to up resolution)
         fig = ff.create_hexbin_mapbox(df, lat="Latitude", lon="Longitude", color=column_chosen, nx_hexagon=150, 
                                     opacity=0.25, center=dict(lat=51.50009, lon=0.1268072),
-                                    mapbox_style="carto-positron", zoom=9, color_continuous_scale = 'Aggrnyl',
+                                    mapbox_style="carto-positron", zoom=9, color_continuous_scale = 'Turbo',
                                     labels={"color": column_chosen}, agg_func = np.mean)
                                     #, min_count=1)
         fig.update_traces(marker_line_width=0)
